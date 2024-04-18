@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	_ "github.com/lib/pq"
 )
 
@@ -13,15 +12,14 @@ type Postgres struct {
 }
 
 func New() (*Postgres, error) {
-	Construct database source string using environment variables
+	// Construct database source string using environment variables
 	databaseSource := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		"postgres",
 		"5432",
 		"postgres",
 		"postgres",
 		"ktaxes",
-		"disable",
-	)
+		"disable")
 
 	db, err := sql.Open("postgres", databaseSource)
 	if err != nil {
