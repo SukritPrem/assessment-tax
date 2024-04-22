@@ -25,6 +25,7 @@ func main() {
 	handler := calculateTax.New(p)
 	e := echo.New()
 	e.POST("tax/calculation", handler.HandleIncomeData)
+	e.POST("tax/calculations/upload-csv", calculateTax.HandleIncomeDataCSV)
 	g := e.Group("/admin")
 	g.Use(middleware.BasicAuth(AuthMiddleware))
 	g.POST("/deductions/personal", handler.DeductionsPersonal)

@@ -6,6 +6,7 @@ import (
 	"fmt"
   "math"
 	"net/http"
+  "io/ioutil"
 )
 type Handler struct {
 	store Storer
@@ -193,4 +194,15 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
     Amount: a.Amount,
   }
   return c.JSON(http.StatusOK, r)
+}
+
+func HandleIncomeDataCSV(c echo.Context) error {
+  body, err := ioutil.ReadAll(c.Request().Body)
+  if err != nil {
+    return err
+  }
+  defer c.Request().Body.Close()
+
+  fmt.Println(string(body))
+  return c.JSON(http.StatusOK, "CSV")
 }
