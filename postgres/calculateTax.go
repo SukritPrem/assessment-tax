@@ -5,11 +5,11 @@ import (
 )	
 type tax struct {
 	id 	 int
-	amount int
+	amount float64
 	taxType string
 }
 
-func (p *Postgres) GetPersonalDeduction() (int, error) {
+func (p *Postgres) GetPersonalDeduction() (float64, error) {
 	rows, err := p.Db.Query("SELECT * FROM ktaxes WHERE taxtype=$1", "personalDeduction")
 	if err != nil {
 		return 0, err

@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS ktaxes (
 	id SERIAL PRIMARY KEY,
-	amount INT NOT NULL,
+	amount FLOAT NOT NULL,
 	taxType VARCHAR(255) NOT NULL
 );
 
