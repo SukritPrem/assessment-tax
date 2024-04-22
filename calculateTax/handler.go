@@ -3,7 +3,8 @@ package calculateTax
 
 import (
 	"github.com/labstack/echo/v4"
-	// "fmt"
+	"fmt"
+  "math"
 	"net/http"
 )
 type Handler struct {
@@ -11,7 +12,8 @@ type Handler struct {
 }
 
 type Storer interface {
-	GetPersonalDeduction() (float64, error)
+	GetAmountByTaxType(v string) (float64, error)
+  UpdateAmountByTaxType(v string,a float64) (float64, error)
 }
 
 
@@ -36,14 +38,19 @@ type taxlevel struct {
   pay float64
 }
 
-type reposne_tax struct {
-  tax_sum float64 `json:"tax"`
-  tax_level []LevelWithTax `josn:"taxLevel"`
+type Response_tax struct {
+  Tax_sum float64 `json:"tax"`
+  Tax_level []LevelWithTax  `json:"taxLevel"`
 }
 
 type LevelWithTax struct {
-  level string
-  tax float64
+  Level string `json:"level"`
+  Tax float64 `json:"tax"`
+}
+
+func roundFloat(val float64, precision uint) float64 {
+    ratio := math.Pow(10, float64(precision))
+    return math.Round(val*ratio) / ratio
 }
 
 func (h *Handler) HandleIncomeData(c echo.Context) error {
@@ -61,8 +68,14 @@ func (h *Handler) HandleIncomeData(c echo.Context) error {
   }
   //when connect database
   // fmt.Println(h.store.GetPersonalDeduction())
-  personalDeduction := 60000.0
-  k_receipt := 50000.0
+  personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
+  if(err != nil){
+    return echo.NewHTTPError(http.StatusBadRequest, "Not found")
+  }
+  k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
+  if(err != nil){
+    return echo.NewHTTPError(http.StatusBadRequest, "Not found")
+  }
   // Process the income data (logic omitted for brevity)
   //   fmt.Println("Received Income Data:")
   //   fmt.Printf("  Total Income: %.2f\n", incomeData.TotalIncome)
@@ -89,41 +102,95 @@ func (h *Handler) HandleIncomeData(c echo.Context) error {
         }
       }
     }
-
+    fmt.Printf("  Total Income: %.2f\n", incomeData.TotalIncome)
     for i := 0; i < len(taxlevels); i++ {
       if incomeData.TotalIncome >= taxlevels[i].rate_min && incomeData.TotalIncome <= taxlevels[i].rate_max && i != 4 {
-        taxlevels[i].pay = incomeData.TotalIncome * taxlevels[i].tax
+        taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
+        fmt.Println(taxlevels[i].pay)
       }
       if i == 4 && incomeData.TotalIncome >= taxlevels[i].rate_min {
-        taxlevels[i].pay = incomeData.TotalIncome * taxlevels[i].tax
+        taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
       }
     }
     
     sum_tax := 0.0
-    if(incomeData.Wht > 0){
-      for i := 0; i < len(taxlevels); i++ {
+    for i := 0; i < len(taxlevels); i++ {
         sum_tax = sum_tax + taxlevels[i].pay
-      }
+    }
+
+    if(incomeData.Wht > 0){
       sum_tax = sum_tax - incomeData.Wht
     }
-    response_tax := reposne_tax{}
+    r := new(Response_tax)
+    // r := Response_tax{
+    //   tax_sum: roundFloat(sum_tax,0),
+    //   Tax_level: []LevelWithTax{},
+    // }
+    // fmt.Println(roundFloat(sum_tax,0))
 
-    response_tax.tax_sum = sum_tax
+    r.Tax_sum = sum_tax
+  
     for i := 0; i < len(taxlevels); i++ {
-		switch i {
-		case 0:
-			response_tax.tax_level = append(response_tax.tax_level, LevelWithTax{"0-150,000", taxlevels[i].pay})
-		case 1:
-			response_tax.tax_level = append(response_tax.tax_level, LevelWithTax{"150,001-500,000", taxlevels[i].pay})
-		case 2:
-			response_tax.tax_level = append(response_tax.tax_level, LevelWithTax{"500,001-1,000,000", taxlevels[i].pay})
-		case 3:
-			response_tax.tax_level = append(response_tax.tax_level, LevelWithTax{"1,000,001-2,000,000", taxlevels[i].pay})
-		case 4:
-			response_tax.tax_level = append(response_tax.tax_level, LevelWithTax{"2,000,001 ขึ้นไป", taxlevels[i].pay})
-		}
-	}
+      switch i {
+      case 0:
+        r.Tax_level = append(r.Tax_level, LevelWithTax{"0-150,000", taxlevels[i].pay})
+      case 1:
+        r.Tax_level = append(r.Tax_level, LevelWithTax{"150,001-500,000", taxlevels[i].pay})
+      case 2:
+        r.Tax_level = append(r.Tax_level, LevelWithTax{"500,001-1,000,000", taxlevels[i].pay})
+      case 3:
+        r.Tax_level = append(r.Tax_level, LevelWithTax{"1,000,001-2,000,000", taxlevels[i].pay})
+      case 4:
+        r.Tax_level = append(r.Tax_level, LevelWithTax{"2,000,001 ขึ้นไป", taxlevels[i].pay})
+      }
+	  } 
+    // fmt.Println(r.tax_sum)
 
+    
+  return c.JSON(http.StatusOK, r)
+}
 
-  return c.JSON(http.StatusOK, response_tax)
+type Request_amount struct {
+  Amount float64 `json:"amount"`
+}
+
+type Response_amount_personalDeduction struct {
+  Amount float64 `json:"personalDeduction"`
+}
+
+type Response_amount_kReceipt struct {
+  Amount float64 `json:"k-receipt"`
+}
+
+func (h *Handler) DeductionsPersonal(c echo.Context) error {
+  a := new(Request_amount)
+  err := c.Bind(&a)
+  if err != nil {
+    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+  }
+  _, err = h.store.UpdateAmountByTaxType("personalDeduction",a.Amount)
+  if(err != nil){
+    return echo.NewHTTPError(http.StatusBadRequest, "Not found")
+  }
+  r := &Response_amount_personalDeduction{
+    Amount: a.Amount,
+  }
+  return c.JSON(http.StatusOK, r)
+}
+
+func (h *Handler) DeductionsKReceipt(c echo.Context) error {
+    a := new(Request_amount)
+  err := c.Bind(&a)
+  if err != nil {
+    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+  }
+  _, err = h.store.UpdateAmountByTaxType("k-receipt",a.Amount)
+  if(err != nil){
+    return echo.NewHTTPError(http.StatusBadRequest, "Not found")
+  }
+
+  r := &Response_amount_kReceipt{
+    Amount: a.Amount,
+  }
+  return c.JSON(http.StatusOK, r)
 }

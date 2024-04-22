@@ -7,5 +7,5 @@ CREATE TABLE IF NOT EXISTS ktaxes (
 );
 
 
-INSERT INTO ktaxes (amount, taxType) VALUES (10, 'k-receipt');
-INSERT INTO ktaxes (amount, taxType) VALUES (20, 'personalDeduction');
+INSERT INTO ktaxes (amount, taxType) VALUES (50000.0, 'k-receipt');
+INSERT INTO ktaxes (amount, taxType) VALUES (60000.0, 'personalDeduction');
