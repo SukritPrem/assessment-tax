@@ -7,6 +7,8 @@ import (
   "math"
 	"net/http"
   "io/ioutil"
+	"strconv"
+	"strings"
 )
 type Handler struct {
 	store Storer
@@ -71,20 +73,12 @@ func (h *Handler) HandleIncomeData(c echo.Context) error {
   // fmt.Println(h.store.GetPersonalDeduction())
   personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
   if(err != nil){
-    return echo.NewHTTPError(http.StatusBadRequest, "Not found")
+    return c.JSON(http.StatusBadRequest, "Not found")
   }
   k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
   if(err != nil){
-    return echo.NewHTTPError(http.StatusBadRequest, "Not found")
+    return c.JSON(http.StatusBadRequest, "Not found")
   }
-  // Process the income data (logic omitted for brevity)
-  //   fmt.Println("Received Income Data:")
-  //   fmt.Printf("  Total Income: %.2f\n", incomeData.TotalIncome)
-  //   fmt.Printf("  Withholding Tax: %.2f\n", incomeData.Wht)
-  //   fmt.Println("  Allowances:")
-  //   for _, allowance := range incomeData.Allowances {
-  //     fmt.Printf("    - Type: %s, Amount: %.2f\n", allowance.AllowanceType, allowance.Amount)
-  //   }
 
     incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
 
@@ -103,6 +97,7 @@ func (h *Handler) HandleIncomeData(c echo.Context) error {
         }
       }
     }
+    fmt.Println(incomeData.TotalIncome)
     fmt.Printf("  Total Income: %.2f\n", incomeData.TotalIncome)
     for i := 0; i < len(taxlevels); i++ {
       if incomeData.TotalIncome >= taxlevels[i].rate_min && incomeData.TotalIncome <= taxlevels[i].rate_max && i != 4 {
@@ -167,11 +162,11 @@ func (h *Handler) DeductionsPersonal(c echo.Context) error {
   a := new(Request_amount)
   err := c.Bind(&a)
   if err != nil {
-    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+    return c.JSON(http.StatusBadRequest, "Invalid JSON data")
   }
   _, err = h.store.UpdateAmountByTaxType("personalDeduction",a.Amount)
   if(err != nil){
-    return echo.NewHTTPError(http.StatusBadRequest, "Not found")
+    return c.JSON(http.StatusBadRequest, "Not found")
   }
   r := &Response_amount_personalDeduction{
     Amount: a.Amount,
@@ -183,11 +178,11 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
     a := new(Request_amount)
   err := c.Bind(&a)
   if err != nil {
-    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+    return c.JSON(http.StatusBadRequest, "Invalid JSON data")
   }
   _, err = h.store.UpdateAmountByTaxType("k-receipt",a.Amount)
   if(err != nil){
-    return echo.NewHTTPError(http.StatusBadRequest, "Not found")
+    return c.JSON(http.StatusBadRequest, "Not found")
   }
 
   r := &Response_amount_kReceipt{
@@ -196,13 +191,66 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   return c.JSON(http.StatusOK, r)
 }
 
-func HandleIncomeDataCSV(c echo.Context) error {
-  body, err := ioutil.ReadAll(c.Request().Body)
-  if err != nil {
-    return err
-  }
-  defer c.Request().Body.Close()
+func validateCSV(data []byte) bool {
 
-  fmt.Println(string(body))
+    lines := strings.Split(string(data), "\n")
+
+    // Check for header row
+    if lines[0] != "totalIncome,wht,donation" {
+        fmt.Println("Warning: Header row not found. Assuming data starts from the first line.")
+    }
+
+    // Validate each line
+    for _, line := range lines[1:] {
+        values := strings.Split(line, ",")
+
+        // Check for correct number of values
+        if len(values) != 3 {
+            fmt.Println("Error: Invalid line format: {line}")
+            return false
+        }
+
+        // Check if all values are numbers
+        for _, value := range values {
+            if _, err := strconv.ParseFloat(value, 64); err != nil {
+                fmt.Println("Error: Invalid value in line: {line}")
+                return false
+            }
+        }
+    }
+
+    return true
+}
+
+type reponse_csv struct {
+  Taxs []totalIncomeAndTax `json:"taxs"`
+}
+
+type totalIncomeAndTax struct {
+  TotalIncome float64 `json:"totalIncome"`
+  Tax float64 `json:"tax"`
+}
+func HandleIncomeDataCSV(c echo.Context) error {
+  file, err := c.FormFile("file")
+  if err != nil {
+    return c.JSON(http.StatusBadRequest, "Error opening file")
+  }
+  src, err := file.Open()
+  if err != nil {
+    return c.JSON(http.StatusBadRequest, "Error opening file")
+  }
+  defer src.Close()
+  // Read the file
+
+  data, err := ioutil.ReadAll(src)
+  if err != nil {
+    return c.JSON(http.StatusBadRequest, "Error opening file")
+  }
+  fmt.Println(string(data))
+  if validateCSV(data) {
+      fmt.Println("CSV format is valid.")
+  } else {
+      fmt.Println("CSV format is invalid.")
+  }
   return c.JSON(http.StatusOK, "CSV")
 }

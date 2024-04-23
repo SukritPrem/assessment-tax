@@ -3,3 +3,5 @@ gobuild:
 	make gorun
 gorun:
 	/usr/local/go/bin/go run .
+test:
+	/usr/local/go/bin/go test -v ./Test
