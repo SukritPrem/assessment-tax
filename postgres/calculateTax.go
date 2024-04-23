@@ -1,8 +1,5 @@
 package postgres
 
-import (
-	"fmt"
-)	
 type tax struct {
 	id 	 int
 	amount float64
@@ -15,14 +12,14 @@ func (p *Postgres) GetAmountByTaxType(v string) (float64, error) {
 		return 0, err
 	}
 	defer rows.Close()
-	fmt.Println("rows")
+	// fmt.Println("rows")
 	for rows.Next() {
 		var t tax
 		err := rows.Scan(&t.id, &t.amount, &t.taxType)
 		if err != nil {
 			return 0, err
 		}
-		fmt.Println(t.amount)
+		// fmt.Println(t.amount)
 		return t.amount, nil
 	}
 	return 0, nil

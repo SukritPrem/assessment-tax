@@ -59,7 +59,7 @@ func roundFloat(val float64, precision uint) float64 {
 func IncomeDataDecrease(incomeData *IncomeData,k_receipt float64) error {
   for _, allowance := range incomeData.Allowances {
       if(allowance.AllowanceType == "donation") {
-        if(allowance.Amount < 100000 ) {
+        if(allowance.Amount < 100000 && allowance.Amount > 0) {
           incomeData.TotalIncome = incomeData.TotalIncome - allowance.Amount  
         } else if allowance.Amount >= 100000 {
           incomeData.TotalIncome = incomeData.TotalIncome - 100000 
@@ -69,13 +69,13 @@ func IncomeDataDecrease(incomeData *IncomeData,k_receipt float64) error {
           incomeData.TotalIncome = incomeData.TotalIncome - k_receipt
         } else if(allowance.Amount <= k_receipt && allowance.Amount > 0) {
           incomeData.TotalIncome = incomeData.TotalIncome - allowance.Amount
-        }
+        } 
       }
-    }
+  }
   return nil
 }
-func (h *Handler) HandleIncomeData(c echo.Context) error {
-  var incomeData IncomeData
+
+func CalculateTaxLevelWithNetIncomeData(incomeData *IncomeData) []taxlevel{
   taxlevels := []taxlevel{
     {1, 0, 0, 150000,0},
     {2, 0.1, 150001, 500000,0},
@@ -83,46 +83,27 @@ func (h *Handler) HandleIncomeData(c echo.Context) error {
     {4, 0.2,1000001, 2000000,0},
     {5, 0.35,2000001, 2000001,0},
   }
-  // Bind the JSON request body to the IncomeData struct
-  err := c.Bind(&incomeData)
-  if err != nil {
-    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
-  }
-  personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
-  if(err != nil){
-    return c.JSON(http.StatusBadRequest, "Not found")
-  }
-  k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
-  if(err != nil){
-    return c.JSON(http.StatusBadRequest, "Not found")
-  }
-  incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
-  err = IncomeDataDecrease(&incomeData,k_receipt)
-  if err != nil {
-    return c.JSON(http.StatusBadRequest, "Invalid JSON data")
-  }
 
-  fmt.Println(incomeData.TotalIncome)
-  fmt.Printf("  Total Income: %.2f\n", incomeData.TotalIncome)
   for i := 0; i < len(taxlevels); i++ {
     if incomeData.TotalIncome >= taxlevels[i].rate_min && incomeData.TotalIncome <= taxlevels[i].rate_max && i != 4 {
       taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
-      fmt.Println(taxlevels[i].pay)
     }
     if i == 4 && incomeData.TotalIncome >= taxlevels[i].rate_min {
       taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
     }
   }
-    
+  return taxlevels
+}
+
+func sumAllTaxLevel(taxlevels []taxlevel) float64 {
   sum_tax := 0.0
   for i := 0; i < len(taxlevels); i++ {
       sum_tax = sum_tax + taxlevels[i].pay
   }
+  return sum_tax
+}
 
-  if(incomeData.Wht > 0){
-    sum_tax = sum_tax - incomeData.Wht
-  }
-
+func ReponseSumTaxWithTaxLevel(taxlevels []taxlevel,sum_tax float64) Response_tax {
   r := &Response_tax{
     Tax_sum: sum_tax,
     Tax_level: []LevelWithTax{
@@ -147,8 +128,35 @@ func (h *Handler) HandleIncomeData(c echo.Context) error {
         Tax: taxlevels[4].pay,
       },
     },
-  }  
-  return c.JSON(http.StatusOK, r)
+  }
+  return *r
+}
+func (h *Handler) HandleIncomeData(c echo.Context) error {
+  var incomeData IncomeData
+  err := c.Bind(&incomeData)
+  if err != nil {
+    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+  }
+  personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
+  if(err != nil){
+    return c.JSON(http.StatusBadRequest, "Not found")
+  }
+  k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
+  if(err != nil){
+    return c.JSON(http.StatusBadRequest, "Not found")
+  }
+  if(incomeData.TotalIncome < 0){
+    return c.JSON(http.StatusBadRequest, "TotalIncome Is Negative")
+  }
+  incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
+  IncomeDataDecrease(&incomeData,k_receipt)
+
+  taxlevels := CalculateTaxLevelWithNetIncomeData(&incomeData)
+  sum_tax := sumAllTaxLevel(taxlevels)
+  if(incomeData.Wht > 0){
+    sum_tax = sum_tax - incomeData.Wht
+  }
+  return c.JSON(http.StatusOK, ReponseSumTaxWithTaxLevel(taxlevels,sum_tax))
 }
 
 type Request_amount struct {
@@ -169,6 +177,9 @@ func (h *Handler) DeductionsPersonal(c echo.Context) error {
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Invalid JSON data")
   }
+  if (a.Amount < 0 || a.Amount > 100000){
+    return c.JSON(http.StatusBadRequest, "Amount is not in range")
+  }
   _, err = h.store.UpdateAmountByTaxType("personalDeduction",a.Amount)
   if(err != nil){
     return c.JSON(http.StatusBadRequest, "Not found")
@@ -184,6 +195,9 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   err := c.Bind(&a)
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Invalid JSON data")
+  }
+  if (a.Amount < 0 || a.Amount > 100000){
+    return c.JSON(http.StatusBadRequest, "Amount is not in range")
   }
   _, err = h.store.UpdateAmountByTaxType("k-receipt",a.Amount)
   if(err != nil){
