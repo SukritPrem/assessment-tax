@@ -56,33 +56,8 @@ func roundFloat(val float64, precision uint) float64 {
     return math.Round(val*ratio) / ratio
 }
 
-func (h *Handler) HandleIncomeData(c echo.Context) error {
-  var incomeData IncomeData
-  taxlevels := []taxlevel{}
-  taxlevels = append(taxlevels, taxlevel{1, 0, 0, 150000,0})
-  taxlevels = append(taxlevels, taxlevel{2, 0.1, 150001, 500000,0})
-  taxlevels = append(taxlevels, taxlevel{3, 0.15,500001, 1000000,0})
-  taxlevels = append(taxlevels, taxlevel{4, 0.2,1000001, 2000000,0})
-  taxlevels = append(taxlevels, taxlevel{5, 0.35,2000001, 2000001,0})
-  // Bind the JSON request body to the IncomeData struct
-  err := c.Bind(&incomeData)
-  if err != nil {
-    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
-  }
-  //when connect database
-  // fmt.Println(h.store.GetPersonalDeduction())
-  personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
-  if(err != nil){
-    return c.JSON(http.StatusBadRequest, "Not found")
-  }
-  k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
-  if(err != nil){
-    return c.JSON(http.StatusBadRequest, "Not found")
-  }
-
-    incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
-
-    for _, allowance := range incomeData.Allowances {
+func IncomeDataDecrease(incomeData *IncomeData,k_receipt float64) error {
+  for _, allowance := range incomeData.Allowances {
       if(allowance.AllowanceType == "donation") {
         if(allowance.Amount < 100000 ) {
           incomeData.TotalIncome = incomeData.TotalIncome - allowance.Amount  
@@ -97,52 +72,82 @@ func (h *Handler) HandleIncomeData(c echo.Context) error {
         }
       }
     }
-    fmt.Println(incomeData.TotalIncome)
-    fmt.Printf("  Total Income: %.2f\n", incomeData.TotalIncome)
-    for i := 0; i < len(taxlevels); i++ {
-      if incomeData.TotalIncome >= taxlevels[i].rate_min && incomeData.TotalIncome <= taxlevels[i].rate_max && i != 4 {
-        taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
-        fmt.Println(taxlevels[i].pay)
-      }
-      if i == 4 && incomeData.TotalIncome >= taxlevels[i].rate_min {
-        taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
-      }
+  return nil
+}
+func (h *Handler) HandleIncomeData(c echo.Context) error {
+  var incomeData IncomeData
+  taxlevels := []taxlevel{
+    {1, 0, 0, 150000,0},
+    {2, 0.1, 150001, 500000,0},
+    {3, 0.15,500001, 1000000,0},
+    {4, 0.2,1000001, 2000000,0},
+    {5, 0.35,2000001, 2000001,0},
+  }
+  // Bind the JSON request body to the IncomeData struct
+  err := c.Bind(&incomeData)
+  if err != nil {
+    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+  }
+  personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
+  if(err != nil){
+    return c.JSON(http.StatusBadRequest, "Not found")
+  }
+  k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
+  if(err != nil){
+    return c.JSON(http.StatusBadRequest, "Not found")
+  }
+  incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
+  err = IncomeDataDecrease(&incomeData,k_receipt)
+  if err != nil {
+    return c.JSON(http.StatusBadRequest, "Invalid JSON data")
+  }
+
+  fmt.Println(incomeData.TotalIncome)
+  fmt.Printf("  Total Income: %.2f\n", incomeData.TotalIncome)
+  for i := 0; i < len(taxlevels); i++ {
+    if incomeData.TotalIncome >= taxlevels[i].rate_min && incomeData.TotalIncome <= taxlevels[i].rate_max && i != 4 {
+      taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
+      fmt.Println(taxlevels[i].pay)
     }
+    if i == 4 && incomeData.TotalIncome >= taxlevels[i].rate_min {
+      taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
+    }
+  }
     
-    sum_tax := 0.0
-    for i := 0; i < len(taxlevels); i++ {
-        sum_tax = sum_tax + taxlevels[i].pay
-    }
+  sum_tax := 0.0
+  for i := 0; i < len(taxlevels); i++ {
+      sum_tax = sum_tax + taxlevels[i].pay
+  }
 
-    if(incomeData.Wht > 0){
-      sum_tax = sum_tax - incomeData.Wht
-    }
-    r := new(Response_tax)
-    // r := Response_tax{
-    //   tax_sum: roundFloat(sum_tax,0),
-    //   Tax_level: []LevelWithTax{},
-    // }
-    // fmt.Println(roundFloat(sum_tax,0))
+  if(incomeData.Wht > 0){
+    sum_tax = sum_tax - incomeData.Wht
+  }
 
-    r.Tax_sum = sum_tax
-  
-    for i := 0; i < len(taxlevels); i++ {
-      switch i {
-      case 0:
-        r.Tax_level = append(r.Tax_level, LevelWithTax{"0-150,000", taxlevels[i].pay})
-      case 1:
-        r.Tax_level = append(r.Tax_level, LevelWithTax{"150,001-500,000", taxlevels[i].pay})
-      case 2:
-        r.Tax_level = append(r.Tax_level, LevelWithTax{"500,001-1,000,000", taxlevels[i].pay})
-      case 3:
-        r.Tax_level = append(r.Tax_level, LevelWithTax{"1,000,001-2,000,000", taxlevels[i].pay})
-      case 4:
-        r.Tax_level = append(r.Tax_level, LevelWithTax{"2,000,001 ขึ้นไป", taxlevels[i].pay})
-      }
-	  } 
-    // fmt.Println(r.tax_sum)
-
-    
+  r := &Response_tax{
+    Tax_sum: sum_tax,
+    Tax_level: []LevelWithTax{
+      {
+        Level: "0-150,000",
+        Tax: taxlevels[0].pay,
+      },
+      {
+        Level: "150,001-500,000",
+        Tax: taxlevels[1].pay,
+      },
+      {
+        Level: "500,001-1,000,000",
+        Tax: taxlevels[2].pay,
+      },
+      {
+        Level: "1,000,001-2,000,000",
+        Tax: taxlevels[3].pay,
+      },
+      {
+        Level: "2,000,001 ขึ้นไป",
+        Tax: taxlevels[4].pay,
+      },
+    },
+  }  
   return c.JSON(http.StatusOK, r)
 }
 
