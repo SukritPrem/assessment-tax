@@ -4,7 +4,7 @@ package calculateTax
 import (
 	"github.com/labstack/echo/v4"
 	"fmt"
-  // "math"
+  "math"
 	"net/http"
   "io/ioutil"
 	"strconv"
@@ -44,6 +44,7 @@ type taxlevel struct {
 type Response_tax struct {
   Tax_sum float64 `json:"tax"`
   Tax_level []LevelWithTax  `json:"taxLevel"`
+  Tax_refund float64 `json:"taxRefund"`
 }
 
 type LevelWithTax struct {
@@ -51,67 +52,7 @@ type LevelWithTax struct {
   Tax float64 `json:"tax"`
 }
 
-func CalculateTaxLevelWithNetIncomeData(incomeData *IncomeData) []taxlevel{
-  taxlevels := []taxlevel{
-    {1, 0, 0, 150000,0},
-    {2, 0.1, 150000, 500000,0},
-    {3, 0.15,500000, 1000000,0},
-    {4, 0.2,1000000, 2000000,0},
-    {5, 0.35,2000000, 2000000,0},
-  }
-
-  for i := 0; i < len(taxlevels); i++ {
-    if incomeData.TotalIncome >= taxlevels[i].rate_min + 1 && incomeData.TotalIncome <= taxlevels[i].rate_max && i != 4 {
-        taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
-        break;
-    } else {
-        taxlevels[i].pay = roundFloat((taxlevels[i].rate_max - taxlevels[i].rate_min) * taxlevels[i].tax,0)
-    }
-    if i == 4 && incomeData.TotalIncome >= taxlevels[i].rate_min + 1 {
-      taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
-    }
-  }
-
-  return taxlevels
-}
-
-func sumAllTaxLevel(taxlevels []taxlevel) float64 {
-  sum_tax := 0.0
-  for i := 0; i < len(taxlevels); i++ {
-      sum_tax = sum_tax + taxlevels[i].pay
-  }
-  return sum_tax
-}
-
-func ReponseSumTaxWithTaxLevel(taxlevels []taxlevel,sum_tax float64) Response_tax {
-  r := &Response_tax{
-    Tax_sum: sum_tax,
-    Tax_level: []LevelWithTax{
-      {
-        Level: "0-150,000",
-        Tax: taxlevels[0].pay,
-      },
-      {
-        Level: "150,001-500,000",
-        Tax: taxlevels[1].pay,
-      },
-      {
-        Level: "500,001-1,000,000",
-        Tax: taxlevels[2].pay,
-      },
-      {
-        Level: "1,000,001-2,000,000",
-        Tax: taxlevels[3].pay,
-      },
-      {
-        Level: "2,000,001 ขึ้นไป",
-        Tax: taxlevels[4].pay,
-      },
-    },
-  }
-  return *r
-}
-func (h *Handler) HandleIncomeData(c echo.Context) error {
+func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   var incomeData IncomeData
   err := c.Bind(&incomeData)
   if err != nil {
@@ -128,17 +69,31 @@ func (h *Handler) HandleIncomeData(c echo.Context) error {
   if(incomeData.TotalIncome < 0){
     return c.JSON(http.StatusBadRequest, "TotalIncome Is Negative")
   }
+  if(incomeData.Wht < 0){
+    return c.JSON(http.StatusBadRequest, "Wht Is Negative")
+  }
+  if(incomeData.Wht > incomeData.TotalIncome * 0.05){
+    return c.JSON(http.StatusBadRequest, "Wht is greater than TotalIncome * 0.05")
+  }
+
   incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
   // fmt.Println(incomeData.TotalIncome)
-  IncomeDataDecrease(&incomeData,k_receipt)
+  err = IncomeDataDecrease(&incomeData,k_receipt)
+  if(err != nil){
+    return c.JSON(http.StatusBadRequest, err.Error())
+  }
   fmt.Println(incomeData.TotalIncome)
   taxlevels := CalculateTaxLevelWithNetIncomeData(&incomeData)
   sum_tax := sumAllTaxLevel(taxlevels)
   fmt.Println(sum_tax)
-  if(incomeData.Wht > 0){
-    sum_tax = sum_tax - incomeData.Wht
+
+  sum_tax = sum_tax - incomeData.Wht
+  taxRefund := 0.0
+  if(sum_tax < 0){
+    taxRefund = math.Abs(sum_tax)
   }
-  return c.JSON(http.StatusOK, ReponseSumTaxWithTaxLevel(taxlevels,sum_tax))
+  
+  return c.JSON(http.StatusOK, ReponseSumTaxWithTaxLevel(taxlevels,sum_tax,taxRefund))
 }
 
 type Request_amount struct {
@@ -193,14 +148,6 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   return c.JSON(http.StatusOK, r)
 }
 
-// func validateHeader(lines string, compareString string) bool {
-//     for i := 0; i < lines); i++ {
-//       if(lines[i] != compareString[i]){
-//         return false
-//       }
-//     }
-//     return true
-// }
 
 type Reponse_csv struct {
   Taxs []TotalIncomeAndTax `json:"taxs"`

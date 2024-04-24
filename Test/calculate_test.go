@@ -51,10 +51,11 @@ func TestCalculateExp01(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	expected := `{"tax":29000,"taxLevel":[{"level":"0-150,000","tax":0},{"level":"150,001-500,000","tax":29000},{"level":"500,001-1,000,000","tax":0},{"level":"1,000,001-2,000,000","tax":0},{"level":"2,000,001 ขึ้นไป","tax":0}]}`
+	expected := `{"tax":29000,"taxLevel":[{"level":"0-150,000","tax":0},{"level":"150,001-500,000","tax":29000},{"level":"500,001-1,000,000","tax":0},{"level":"1,000,001-2,000,000","tax":0},{"level":"2,000,001 ขึ้นไป","tax":0}],
+	"taxRefund": 0}`
 
 	handler := calculateTax.New(p)
-	err = handler.HandleIncomeData(c)
+	err = handler.HandleCalculateTaxData(c)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -114,10 +115,11 @@ func TestCalculateExp02(t *testing.T) {
 				"level": "2,000,001 ขึ้นไป",
 				"tax": 0
 			}
-		]
+		],
+		"taxRefund": 0
 	}`
 	handler := calculateTax.New(p)
-	err = handler.HandleIncomeData(c)
+	err = handler.HandleCalculateTaxData(c)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -177,10 +179,11 @@ func TestCalculateExp03_04(t *testing.T) {
 				"level": "2,000,001 ขึ้นไป",
 				"tax": 0
 			}
-		]
+		],
+		"taxRefund": 0
 	}`
 	handler := calculateTax.New(p)
-	err = handler.HandleIncomeData(c)
+	err = handler.HandleCalculateTaxData(c)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -244,10 +247,11 @@ func TestCalculateExp07(t *testing.T) {
 				"level": "2,000,001 ขึ้นไป",
 				"tax": 0
 			}
-		]
+		],
+		"taxRefund": 0
 	}`
 	handler := calculateTax.New(p)
-	err = handler.HandleIncomeData(c)
+	err = handler.HandleCalculateTaxData(c)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
