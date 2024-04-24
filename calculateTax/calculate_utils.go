@@ -3,6 +3,7 @@ package calculateTax
 import (
 	  "math"
     "errors"
+    // "fmt"
 )
 
 func roundFloat(val float64, precision uint) float64 {
