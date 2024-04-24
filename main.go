@@ -29,7 +29,7 @@ func main() {
 	}
 	handler := calculateTax.New(p)
 	e := echo.New()
-	e.POST("tax/calculation", handler.HandleIncomeData)
+	e.POST("tax/calculation", handler.HandleCalculateTaxData)
 	e.POST("tax/calculations/upload-csv", handler.HandleIncomeDataCSV)
 	g := e.Group("/admin")
 	g.Use(middleware.BasicAuth(AuthMiddleware))
