@@ -59,15 +59,15 @@ func roundFloat(val float64, precision uint) float64 {
 func IncomeDataDecrease(incomeData *IncomeData,k_receipt float64) error {
   for _, allowance := range incomeData.Allowances {
       if(allowance.AllowanceType == "donation") {
-        if(allowance.Amount < 100000 && allowance.Amount > 0) {
+        if(allowance.Amount < 100000 && allowance.Amount > 10000) {
           incomeData.TotalIncome = incomeData.TotalIncome - allowance.Amount  
         } else if allowance.Amount >= 100000 {
           incomeData.TotalIncome = incomeData.TotalIncome - 100000 
         }
       } else if(allowance.AllowanceType == "k-receipt") {
-        if(allowance.Amount > k_receipt) {
+        if(allowance.Amount >= k_receipt) {
           incomeData.TotalIncome = incomeData.TotalIncome - k_receipt
-        } else if(allowance.Amount <= k_receipt && allowance.Amount > 0) {
+        } else if(allowance.Amount < k_receipt && allowance.Amount > 0) {
           incomeData.TotalIncome = incomeData.TotalIncome - allowance.Amount
         } 
       }
@@ -211,47 +211,100 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   return c.JSON(http.StatusOK, r)
 }
 
-func validateCSV(data []byte) bool {
+// func validateHeader(lines string, compareString string) bool {
+//     for i := 0; i < lines); i++ {
+//       if(lines[i] != compareString[i]){
+//         return false
+//       }
+//     }
+//     return true
+// }
 
+func validateCSV(data []byte, req *[]IncomeData) bool {
+
+    // dataOneLine := IncomeData{}
+    data = []byte(strings.Replace(string(data), "\r", "", -1))
     lines := strings.Split(string(data), "\n")
 
-    // Check for header row
-    if lines[0] != "totalIncome,wht,donation" {
-        fmt.Println("Warning: Header row not found. Assuming data starts from the first line.")
+    lines[0] = strings.Replace(lines[0], "\r", "", -1)
+    if(strings.Compare(lines[0],"totalIncome,wht,donation") != 0){
+      fmt.Println("Header row not found. Assuming data starts from the first line.")
     }
 
     // Validate each line
     for _, line := range lines[1:] {
+        fmt.Println(line)
         values := strings.Split(line, ",")
-
+        for i := 0; i < len(values); i++ {
+          _, err := strconv.ParseFloat(values[i], 64)
+          if(err != nil){
+            for _, char := range values[i] {
+		          fmt.Printf("%s: %08b\n", string(char), char)
+	        }
+            fmt.Printf("Error in line %d: %s\n", i, values[i])
+          } 
+          fmt.Println(values[i])
+        }
+        // values[0] = strings.Replace(values[0], "\r", "", -1)
+        // values[0] = strings.Replace(values[0], "]", "", -1)
+        // fmt.Println(values)
         // Check for correct number of values
-        if len(values) != 3 {
-            fmt.Println("Error: Invalid line format: {line}")
-            return false
-        }
+        // if len(values) != 3 {
+        //     return false
+        // }
 
-        // Check if all values are numbers
-        for _, value := range values {
-            if _, err := strconv.ParseFloat(value, 64); err != nil {
-                fmt.Println("Error: Invalid value in line: {line}")
-                return false
-            }
-        }
+        // // Check if all values are numbers
+        // for _, value := range values {
+        //     if _, err := strconv.ParseFloat(value, 64); err != nil {
+        //         return false
+        //     }
+        //     if()
+        //     req.TotalIncome, _ = strconv.ParseFloat(values[0], 64)
+        // }
+        // var err error
+        // var num float64
+        // for i, value := range values {
+        //   if i == 0 {
+        //     dataOneLine.TotalIncome, err = strconv.ParseFloat(value, 64)
+        //     if err != nil {
+        //       return false
+        //     }
+        //   } else if i == 1 {
+        //     dataOneLine.Wht, err = strconv.ParseFloat(value, 64)
+        //     if err != nil {
+        //       return false
+        //     }
+        //   } else if i == 2 {
+        //     num, err = strconv.ParseFloat(value, 64)
+        //     if err != nil {
+        //       return false
+        //     }
+        //     dataOneLine.Allowances = append(dataOneLine.Allowances, struct {
+        //       AllowanceType string  `json:"allowanceType"`
+        //       Amount        float64 `json:"amount"`
+        //     }{"donation", num})
+        //   } else {
+        //     return false
+        //   }
+        // }
+        // fmt.Println(dataOneLine)
     }
 
     return true
 }
 
-type reponse_csv struct {
-  Taxs []totalIncomeAndTax `json:"taxs"`
+type Reponse_csv struct {
+  Taxs []TotalIncomeAndTax `json:"taxs"`
 }
 
-type totalIncomeAndTax struct {
+type TotalIncomeAndTax struct {
   TotalIncome float64 `json:"totalIncome"`
   Tax float64 `json:"tax"`
 }
 func HandleIncomeDataCSV(c echo.Context) error {
   file, err := c.FormFile("file")
+  // r := &Reponse_csv{}
+  req := []IncomeData{}
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Error opening file")
   }
@@ -266,8 +319,8 @@ func HandleIncomeDataCSV(c echo.Context) error {
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Error opening file")
   }
-  fmt.Println(string(data))
-  if validateCSV(data) {
+  // fmt.Println(string(data))
+  if validateCSV(data, &req) {
       fmt.Println("CSV format is valid.")
   } else {
       fmt.Println("CSV format is invalid.")
