@@ -92,7 +92,7 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   if(sum_tax < 0){
     taxRefund = math.Abs(sum_tax)
   }
-  
+
   return c.JSON(http.StatusOK, ReponseSumTaxWithTaxLevel(taxlevels,sum_tax,taxRefund))
 }
 
@@ -129,7 +129,7 @@ func (h *Handler) DeductionsPersonal(c echo.Context) error {
 }
 
 func (h *Handler) DeductionsKReceipt(c echo.Context) error {
-    a := new(Request_amount)
+  a := new(Request_amount)
   err := c.Bind(&a)
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Invalid JSON data")
