@@ -11,8 +11,12 @@ func roundFloat(val float64, precision uint) float64 {
 }
 
 func IncomeDataDecrease(incomeData *IncomeData,k_receipt float64) error {
+
+  DuplicateDonation := 0
+  DuplicateKReceipt := 0
   for _, allowance := range incomeData.Allowances {
       if(allowance.AllowanceType == "donation") {
+        DuplicateDonation++
         if(allowance.Amount < 100000 && allowance.Amount >= 0) {
           incomeData.TotalIncome = incomeData.TotalIncome - allowance.Amount  
         } else if allowance.Amount >= 100000 {
@@ -21,6 +25,7 @@ func IncomeDataDecrease(incomeData *IncomeData,k_receipt float64) error {
           return errors.New("Donation is negative")
         }
       } else if(allowance.AllowanceType == "k-receipt") {
+        DuplicateKReceipt++
         if(allowance.Amount >= k_receipt) {
           incomeData.TotalIncome = incomeData.TotalIncome - k_receipt
         } else if(allowance.Amount < k_receipt && allowance.Amount >= 0) {
@@ -29,6 +34,9 @@ func IncomeDataDecrease(incomeData *IncomeData,k_receipt float64) error {
           return errors.New("k-receipt is negative")
         }
       }
+  }
+  if(DuplicateDonation > 1 || DuplicateKReceipt > 1){
+    return errors.New("Duplicate Donation or K-Receipt")
   }
   return nil
 }
@@ -46,7 +54,7 @@ func CalculateTaxLevelWithNetIncomeData(incomeData *IncomeData) []taxlevel{
     if incomeData.TotalIncome >= taxlevels[i].rate_min + 1 && incomeData.TotalIncome <= taxlevels[i].rate_max && i != 4 {
         taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
         break;
-    } else {
+    } else if(incomeData.TotalIncome > taxlevels[i].rate_max) {
         taxlevels[i].pay = roundFloat((taxlevels[i].rate_max - taxlevels[i].rate_min) * taxlevels[i].tax,0)
     }
     if i == 4 && incomeData.TotalIncome >= taxlevels[i].rate_min + 1 {

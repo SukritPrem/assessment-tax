@@ -66,7 +66,7 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   if(err != nil){
     return c.JSON(http.StatusBadRequest, "Not found")
   }
-   
+
   err = checkErrorIncomeData(&incomeData)
   if(err != nil){
     return c.JSON(http.StatusBadRequest, err.Error())
@@ -78,10 +78,10 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   if(err != nil){
     return c.JSON(http.StatusBadRequest, err.Error())
   }
-  fmt.Println(incomeData.TotalIncome)
+  // fmt.Println(incomeData.TotalIncome)
   taxlevels := CalculateTaxLevelWithNetIncomeData(&incomeData)
   sum_tax := sumAllTaxLevel(taxlevels)
-  fmt.Println(sum_tax)
+  // fmt.Println(sum_tax)
 
   sum_tax = sum_tax - incomeData.Wht
   taxRefund := 0.0
