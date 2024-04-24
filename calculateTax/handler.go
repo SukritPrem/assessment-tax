@@ -78,20 +78,24 @@ func IncomeDataDecrease(incomeData *IncomeData,k_receipt float64) error {
 func CalculateTaxLevelWithNetIncomeData(incomeData *IncomeData) []taxlevel{
   taxlevels := []taxlevel{
     {1, 0, 0, 150000,0},
-    {2, 0.1, 150001, 500000,0},
-    {3, 0.15,500001, 1000000,0},
-    {4, 0.2,1000001, 2000000,0},
-    {5, 0.35,2000001, 2000001,0},
+    {2, 0.1, 150000, 500000,0},
+    {3, 0.15,500000, 1000000,0},
+    {4, 0.2,1000000, 2000000,0},
+    {5, 0.35,2000000, 2000000,0},
   }
 
   for i := 0; i < len(taxlevels); i++ {
-    if incomeData.TotalIncome >= taxlevels[i].rate_min && incomeData.TotalIncome <= taxlevels[i].rate_max && i != 4 {
-      taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
+    if incomeData.TotalIncome >= taxlevels[i].rate_min + 1 && incomeData.TotalIncome <= taxlevels[i].rate_max && i != 4 {
+        taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
+        break;
+    } else {
+        taxlevels[i].pay = roundFloat((taxlevels[i].rate_max - taxlevels[i].rate_min) * taxlevels[i].tax,0)
     }
-    if i == 4 && incomeData.TotalIncome >= taxlevels[i].rate_min {
+    if i == 4 && incomeData.TotalIncome >= taxlevels[i].rate_min + 1 {
       taxlevels[i].pay = roundFloat((incomeData.TotalIncome - taxlevels[i].rate_min) * taxlevels[i].tax,0)
     }
   }
+
   return taxlevels
 }
 
@@ -149,10 +153,12 @@ func (h *Handler) HandleIncomeData(c echo.Context) error {
     return c.JSON(http.StatusBadRequest, "TotalIncome Is Negative")
   }
   incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
+  // fmt.Println(incomeData.TotalIncome)
   IncomeDataDecrease(&incomeData,k_receipt)
-
+  fmt.Println(incomeData.TotalIncome)
   taxlevels := CalculateTaxLevelWithNetIncomeData(&incomeData)
   sum_tax := sumAllTaxLevel(taxlevels)
+  fmt.Println(sum_tax)
   if(incomeData.Wht > 0){
     sum_tax = sum_tax - incomeData.Wht
   }
@@ -220,9 +226,20 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
 //     return true
 // }
 
-func validateCSV(data []byte, req *[]IncomeData) bool {
+type Reponse_csv struct {
+  Taxs []TotalIncomeAndTax `json:"taxs"`
+}
 
-    // dataOneLine := IncomeData{}
+type TotalIncomeAndTax struct {
+  TotalIncome float64 `json:"totalIncome"`
+  Tax float64 `json:"tax"`
+}
+
+func validateCSV(data []byte, req *[]IncomeData, personalDeduction float64, k_receipt float64) (bool, Reponse_csv) {
+    r := Reponse_csv{}
+    // Reponse_csv.Taxs = append(Reponse_csv.Taxs, TotalIncomeAndTax{})
+    result := TotalIncomeAndTax{}
+    dataOneLine := IncomeData{}
     data = []byte(strings.Replace(string(data), "\r", "", -1))
     lines := strings.Split(string(data), "\n")
 
@@ -232,76 +249,54 @@ func validateCSV(data []byte, req *[]IncomeData) bool {
     }
 
     // Validate each line
+    var err error
+    var num float64
     for _, line := range lines[1:] {
         fmt.Println(line)
         values := strings.Split(line, ",")
         for i := 0; i < len(values); i++ {
-          _, err := strconv.ParseFloat(values[i], 64)
+          _, err = strconv.ParseFloat(values[i], 64)
           if(err != nil){
-            for _, char := range values[i] {
-		          fmt.Printf("%s: %08b\n", string(char), char)
-	        }
             fmt.Printf("Error in line %d: %s\n", i, values[i])
           } 
-          fmt.Println(values[i])
+          if(i == 0){
+            dataOneLine.TotalIncome, err = strconv.ParseFloat(values[0], 64)
+            if(err != nil){
+              fmt.Printf("Error in line %d: %s\n", i, values[i])
+            }
+          } else if(i == 1){
+            dataOneLine.Wht, err = strconv.ParseFloat(values[1], 64)
+            if(err != nil){
+              fmt.Printf("Error in line %d: %s\n", i, values[i])
+            }
+          } else if(i == 2){
+            num, err = strconv.ParseFloat(values[2], 64)
+            if(err != nil){
+              fmt.Printf("Error in line %d: %s\n", i, values[i])
+            }
+            dataOneLine.Allowances = append(dataOneLine.Allowances, struct {
+              AllowanceType string  `json:"allowanceType"`
+              Amount        float64 `json:"amount"`
+            }{"donation", num})
+          }
         }
-        // values[0] = strings.Replace(values[0], "\r", "", -1)
-        // values[0] = strings.Replace(values[0], "]", "", -1)
-        // fmt.Println(values)
-        // Check for correct number of values
-        // if len(values) != 3 {
-        //     return false
-        // }
-
-        // // Check if all values are numbers
-        // for _, value := range values {
-        //     if _, err := strconv.ParseFloat(value, 64); err != nil {
-        //         return false
-        //     }
-        //     if()
-        //     req.TotalIncome, _ = strconv.ParseFloat(values[0], 64)
-        // }
-        // var err error
-        // var num float64
-        // for i, value := range values {
-        //   if i == 0 {
-        //     dataOneLine.TotalIncome, err = strconv.ParseFloat(value, 64)
-        //     if err != nil {
-        //       return false
-        //     }
-        //   } else if i == 1 {
-        //     dataOneLine.Wht, err = strconv.ParseFloat(value, 64)
-        //     if err != nil {
-        //       return false
-        //     }
-        //   } else if i == 2 {
-        //     num, err = strconv.ParseFloat(value, 64)
-        //     if err != nil {
-        //       return false
-        //     }
-        //     dataOneLine.Allowances = append(dataOneLine.Allowances, struct {
-        //       AllowanceType string  `json:"allowanceType"`
-        //       Amount        float64 `json:"amount"`
-        //     }{"donation", num})
-        //   } else {
-        //     return false
-        //   }
-        // }
-        // fmt.Println(dataOneLine)
+        result.TotalIncome = dataOneLine.TotalIncome
+        dataOneLine.TotalIncome = dataOneLine.TotalIncome - personalDeduction
+        fmt.Printf("totalincome: %f\n",dataOneLine.TotalIncome)
+        fmt.Printf("personalDeduction: %f\n",personalDeduction)
+        IncomeDataDecrease(&dataOneLine,k_receipt)
+        fmt.Printf("totalincome: %f",dataOneLine.TotalIncome)
+        taxlevels := CalculateTaxLevelWithNetIncomeData(&dataOneLine)
+        sum_tax := sumAllTaxLevel(taxlevels)
+        result.Tax = sum_tax
+        r.Taxs = append(r.Taxs, result)
+        
     }
 
-    return true
+    return true, r
 }
 
-type Reponse_csv struct {
-  Taxs []TotalIncomeAndTax `json:"taxs"`
-}
-
-type TotalIncomeAndTax struct {
-  TotalIncome float64 `json:"totalIncome"`
-  Tax float64 `json:"tax"`
-}
-func HandleIncomeDataCSV(c echo.Context) error {
+func (h *Handler) HandleIncomeDataCSV(c echo.Context) error {
   file, err := c.FormFile("file")
   // r := &Reponse_csv{}
   req := []IncomeData{}
@@ -314,16 +309,22 @@ func HandleIncomeDataCSV(c echo.Context) error {
   }
   defer src.Close()
   // Read the file
-
+  personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
+  if(err != nil){
+    return c.JSON(http.StatusBadRequest, "Not found")
+  }
+  k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
+  if(err != nil){
+    return c.JSON(http.StatusBadRequest, "Not found")
+  }
   data, err := ioutil.ReadAll(src)
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Error opening file")
   }
   // fmt.Println(string(data))
-  if validateCSV(data, &req) {
-      fmt.Println("CSV format is valid.")
-  } else {
-      fmt.Println("CSV format is invalid.")
+  check, r := validateCSV(data, &req, personalDeduction, k_receipt)
+  if(check == false){
+    return c.JSON(http.StatusBadRequest, "Error in CSV file")
   }
-  return c.JSON(http.StatusOK, "CSV")
+  return c.JSON(http.StatusOK, r)
 }
