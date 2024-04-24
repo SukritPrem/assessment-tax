@@ -65,6 +65,18 @@ func sumAllTaxLevel(taxlevels []taxlevel) float64 {
   return sum_tax
 }
 
+func checkErrorIncomeData(incomeData *IncomeData) error {
+  if(incomeData.TotalIncome < 0){
+    return errors.New("TotalIncome Is Negative")
+  }
+  if(incomeData.Wht < 0){
+    return errors.New("Wht Is Negative")
+  }
+  if(incomeData.Wht > incomeData.TotalIncome * 0.05){
+    return errors.New("Wht is greater than TotalIncome * 0.05")
+  }
+  return nil
+}
 func ReponseSumTaxWithTaxLevel(taxlevels []taxlevel,sum_tax float64,taxRefund float64) Response_tax {
   r := &Response_tax{
     Tax_sum: sum_tax,
