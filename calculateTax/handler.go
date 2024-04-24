@@ -78,6 +78,8 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   if(err != nil){
     return c.JSON(http.StatusBadRequest, err.Error())
   }
+  // fmt.Printf("k_receipt: %f\n",k_receipt)
+  // fmt.Printf("totalincome: %f",incomeData.TotalIncome)
   // fmt.Println(incomeData.TotalIncome)
   taxlevels := CalculateTaxLevelWithNetIncomeData(&incomeData)
   sum_tax := sumAllTaxLevel(taxlevels)
