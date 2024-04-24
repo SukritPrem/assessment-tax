@@ -177,7 +177,8 @@ func (h *Handler) DeductionsPersonal(c echo.Context) error {
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Invalid JSON data")
   }
-  if (a.Amount < 0 || a.Amount > 100000){
+  fmt.Println(a.Amount)
+  if (a.Amount <= 10000 || a.Amount > 100000){
     return c.JSON(http.StatusBadRequest, "Amount is not in range")
   }
   _, err = h.store.UpdateAmountByTaxType("personalDeduction",a.Amount)
@@ -196,7 +197,7 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Invalid JSON data")
   }
-  if (a.Amount < 0 || a.Amount > 100000){
+  if (a.Amount <= 0 || a.Amount > 100000){
     return c.JSON(http.StatusBadRequest, "Amount is not in range")
   }
   _, err = h.store.UpdateAmountByTaxType("k-receipt",a.Amount)
