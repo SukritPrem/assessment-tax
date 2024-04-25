@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/KKGo-Software-engineering/assessment-tax/postgres"
-	"github.com/KKGo-Software-engineering/assessment-tax/calculateTax"
+	"github.com/SukritPrem/assessment-tax/postgres"
+	"github.com/SukritPrem/assessment-tax/calculateTax"
 	"os"
 	"os/signal"
 	"context"
