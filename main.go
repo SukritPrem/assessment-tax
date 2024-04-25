@@ -14,7 +14,7 @@ import (
 )
 
 func AuthMiddleware(username, password string, c echo.Context) (bool, error) {
-	if username == "adminTax" || password == "admin!" {
+	if username == os.Getenv("ADMIN_USERNAME") || password == os.Getenv("ADMIN_PASSWORD") {
 		return true, nil
 	}
 	return false, nil
