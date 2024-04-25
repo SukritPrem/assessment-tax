@@ -34,6 +34,8 @@ func IncomeDataDecrease(incomeData *IncomeData,k_receipt float64) error {
         } else {
           return errors.New("k-receipt is negative")
         }
+      } else {
+        return errors.New("Invalid AllowanceType")
       }
   }
   if(DuplicateDonation > 1 || DuplicateKReceipt > 1){
