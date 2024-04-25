@@ -16,8 +16,52 @@ import (
 	"mime/multipart"
 )
 
-func TestHandleIncomeDataCSV(t *testing.T) {
-	fileContent, err := ioutil.ReadFile("../file.csv")
+func TestHandleIncomeDataCSV_errorWhtThenMax(t *testing.T) {
+	fileContent, err := ioutil.ReadFile("./fileCsv/WhtThenMax.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodPost, "/tax/calculations/upload-csv", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("file")
+
+	body := new(bytes.Buffer)
+	multipartWriter := multipart.NewWriter(body)
+	part, err := multipartWriter.CreateFormFile("file", "test.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = part.Write(fileContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	multipartWriter.Close()
+
+	req.Header.Set(echo.HeaderContentType, multipartWriter.FormDataContentType())
+	req.Body = ioutil.NopCloser(body)
+
+	p, err := postgres.New();
+	if err != nil {
+		panic(err)
+	}
+	expected := `"Wht is greater than TotalIncome * 0.05"`
+	handler := calculateTax.New(p)
+	err = handler.HandleIncomeDataCSV(c)
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+	if rec.Code != http.StatusBadRequest{
+		t.Errorf("Expected status 400, got %v", rec.Code)
+	}
+
+	require.JSONEq(t, expected, rec.Body.String())
+	// Here you can check the response body as well
+}
+
+func TestHandleIncomeDataCSV_TrueFileCsv(t *testing.T) {
+	fileContent, err := ioutil.ReadFile("./fileCsv/True.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +111,7 @@ func TestHandleIncomeDataCSV(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
-	if rec.Code != http.StatusOK {
+	if rec.Code != http.StatusOK{
 		t.Errorf("Expected status 200, got %v", rec.Code)
 	}
 
