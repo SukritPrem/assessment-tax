@@ -68,7 +68,7 @@ func validateCSV(data []byte, req *[]IncomeData, personalDeduction float64, k_re
 		}
         taxlevels := CalculateTaxLevelWithNetIncomeData(&dataOneLine)
         sum_tax := sumAllTaxLevel(taxlevels)
-        result.Tax = sum_tax
+        result.Tax = sum_tax - dataOneLine.Wht
         r.Taxs = append(r.Taxs, result)
         
     }
