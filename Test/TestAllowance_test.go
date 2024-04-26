@@ -184,23 +184,6 @@ func Test_KreceiveRandomIncomeThenMax(t *testing.T) {
 func Test_KreceiveAndDonationRandomAmount(t *testing.T) {
 	// Create a new Postgres instance
 	e := echo.New()
-	// reqBody := IncomeData{
-	// 	TotalIncome: 1500000,
-	// 	Wht: 0.0,
-	// 	Allowances: []struct {
-	// 		AllowanceType string  `json:"allowanceType"`
-	// 		Amount        float64 `json:"amount"`
-	// 	}{
-	// 		{
-	// 			AllowanceType: "k-receipt",
-	// 			Amount: 20000,
-	// 		},
-	// 		{
-	// 			AllowanceType: "donation",
-	// 			Amount: 20000,
-	// 		},
-	// 	},
-	// }
 	jsonBytes := []byte(`{
 		"totalIncome": 1500000,
 		"wht": 0.0,
