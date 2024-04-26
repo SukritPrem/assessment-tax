@@ -22,10 +22,10 @@ COPY --from=build-base /app/out/go-sample /app/go-sample
 RUN apk add --no-cache \
     bash \
     make 
-COPY export.sh /usr/local/bin/
+COPY entrypoint.sh /usr/local/bin/
 
-RUN chmod +x /usr/local/bin/export.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["export.sh"]
+ENTRYPOINT ["entrypoint.sh"]
 
 CMD ["./app/go-sample"]
