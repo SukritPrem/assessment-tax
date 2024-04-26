@@ -4,9 +4,18 @@ import (
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"fmt"
+  "io/ioutil"
+  "strings"
+  "encoding/json"
+  "github.com/go-playground/validator/v10"
 )
+
 type Request_amount struct {
-  Amount float64 `json:"amount"`
+  Amount float64 `json:"amount" `
+}
+
+type Request_amount_new struct {
+  Amount *float64 `json:"amount" validate:"required,maxfloat"`
 }
 
 type Response_amount_personalDeduction struct {
@@ -55,4 +64,38 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
     Amount: a.Amount,
   }
   return c.JSON(http.StatusOK, r)
+}
+
+func (h *Handler) Deductions(c echo.Context) error {
+  // taxType := c.Param("taxType")
+  body, err := ioutil.ReadAll(c.Request().Body)
+		if err != nil {
+			return err
+  }
+	defer c.Request().Body.Close()
+  var jsonBytes []byte
+  jsonBytes = body
+  err = check(json.NewDecoder(strings.NewReader(string(jsonBytes))), nil, dupErr)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+  err = validateKeyReqAdmin(body)
+  if err != nil {
+    return c.JSON(http.StatusBadRequest, err.Error())
+  }
+  amount := new(Request_amount_new)
+  validate := validator.New()
+  validate.RegisterValidation("maxfloat", validateValueFloat)
+	err = validate.Struct(amount)
+  	if err != nil {
+		errors := err.(validator.ValidationErrors)
+		allErrors := errors.Error()
+		for _, e := range errors {
+			allErrors = allErrors + e.Field() + " " + e.Tag() + "\n"
+			fmt.Println(e.Field(), e.Tag())
+		}
+	}
+	fmt.Println(*amount.Amount)
+  
+  return c.JSON(http.StatusOK, "Deductions")
 }

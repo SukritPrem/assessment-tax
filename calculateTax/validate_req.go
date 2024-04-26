@@ -46,3 +46,32 @@ func hasField(s interface{}, fieldName string) bool {
 	}
 	return false
 }
+
+func validateKeyReqAdmin(jsonBytes []byte) error {
+	var data map[string]interface{}
+
+	if err := json.Unmarshal(jsonBytes, &data); err != nil {
+		return err
+	}
+
+	// Custom validation
+	if err := validateMapReqAdmin(data); err != nil {
+		return err
+	}
+
+
+	return nil
+}
+
+func validateMapReqAdmin(data map[string]interface{}) error {
+	
+
+	// Convert the map to a struct
+	var incomeData Request_amount_new 
+	for key, _:= range data {
+		if !hasField(&incomeData, key) {
+			return errors.New("Invalid JSON data " + key)
+		}
+	}
+	return nil
+}

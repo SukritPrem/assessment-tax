@@ -11,3 +11,7 @@ refreshbranch:
 
 exportEnv:
 	source export.sh
+
+run:
+	make exportEnv
+	docker compose up --build
