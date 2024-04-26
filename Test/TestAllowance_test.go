@@ -12,7 +12,7 @@ import (
 	// "io/ioutil"
 	// "strings"
 	"bytes"
-	"encoding/json"
+	// "encoding/json"
 )
 
 func Test_DuplicateDonation(t *testing.T) {
@@ -121,21 +121,17 @@ func Test_DonationRandomIncomeThenMax(t *testing.T) {
 func Test_KreceiveRandomIncomeThenMax(t *testing.T) {
 	// Create a new Postgres instance
 	e := echo.New()
-	reqBody := IncomeData{
-		TotalIncome: 1500000,
-		Wht: 0.0,
-		Allowances: []struct {
-			AllowanceType string  `json:"allowanceType"`
-			Amount        float64 `json:"amount"`
-		}{
+	jsonBytes := []byte(`{
+		"totalIncome": 1500000,
+		"wht": 0.0,
+		"allowances": [
 			{
-				AllowanceType: "k-receipt",
-				Amount: 500000,
-			},
-		},
-	}
-	reqJSON, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(reqJSON))
+			"allowanceType": "k-receipt",
+			"amount": 500000
+			}
+		]
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(jsonBytes))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -188,25 +184,39 @@ func Test_KreceiveRandomIncomeThenMax(t *testing.T) {
 func Test_KreceiveAndDonationRandomAmount(t *testing.T) {
 	// Create a new Postgres instance
 	e := echo.New()
-	reqBody := IncomeData{
-		TotalIncome: 1500000,
-		Wht: 0.0,
-		Allowances: []struct {
-			AllowanceType string  `json:"allowanceType"`
-			Amount        float64 `json:"amount"`
-		}{
+	// reqBody := IncomeData{
+	// 	TotalIncome: 1500000,
+	// 	Wht: 0.0,
+	// 	Allowances: []struct {
+	// 		AllowanceType string  `json:"allowanceType"`
+	// 		Amount        float64 `json:"amount"`
+	// 	}{
+	// 		{
+	// 			AllowanceType: "k-receipt",
+	// 			Amount: 20000,
+	// 		},
+	// 		{
+	// 			AllowanceType: "donation",
+	// 			Amount: 20000,
+	// 		},
+	// 	},
+	// }
+	jsonBytes := []byte(`{
+		"totalIncome": 1500000,
+		"wht": 0.0,
+		"allowances": [
 			{
-				AllowanceType: "k-receipt",
-				Amount: 20000,
+			"allowanceType": "k-receipt",
+			"amount": 20000
 			},
 			{
-				AllowanceType: "donation",
-				Amount: 20000,
-			},
-		},
-	}
-	reqJSON, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(reqJSON))
+			"allowanceType": "donation",
+			"amount": 20000
+			}
+		]
+	}`)
+	// reqJSON, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(jsonBytes))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
