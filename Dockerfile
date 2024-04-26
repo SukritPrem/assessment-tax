@@ -10,6 +10,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 go test -v
 
+
 RUN go build -o ./out/go-sample .
 
 # ====================
@@ -19,6 +20,12 @@ FROM alpine:3.16.2
 COPY --from=build-base /app/out/go-sample /app/go-sample
 
 RUN apk add --no-cache \
-    bash
-    
-CMD ["/app/go-sample"]
+    bash \
+    make 
+COPY export.sh /usr/local/bin/
+
+RUN chmod +x /usr/local/bin/export.sh
+
+ENTRYPOINT ["export.sh"]
+
+CMD ["./app/go-sample"]

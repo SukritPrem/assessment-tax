@@ -10,4 +10,4 @@ refreshbranch:
 	git rebase origin/main  # rebase on latest main
 
 exportEnv:
-	. ./export.sh
+	source export.sh

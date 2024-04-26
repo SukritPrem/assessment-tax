@@ -15,7 +15,7 @@ type Postgres struct {
 func New() (*Postgres, error) {
 	// Construct database source string using environment variables
 	databaseSource := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		os.Getenv("DB_HOST"),
+		os.Getenv("DATABASE_URL"),
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
