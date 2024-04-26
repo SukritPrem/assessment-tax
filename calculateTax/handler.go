@@ -10,6 +10,7 @@ import (
 	// "strconv"
 	// "strings"
   // "encoding/json"
+  "github.com/go-playground/validator/v10"
 )
 type Handler struct {
 	store Storer
@@ -62,10 +63,13 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
 			return err
   }
 	defer c.Request().Body.Close()
-
+  // if(len(body) == 0){
+  //   return c.JSON(http.StatusBadRequest, "Invalid JSON data")
+  // }
+  // fmt.Printf("body: %v\n",body)
   err = validateKey(body)
   if err != nil {
-    return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+    return c.JSON(http.StatusBadRequest, err.Error())
   }
   // err = c.Bind(&incomeData)
   // if err != nil {
@@ -77,6 +81,14 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
 	// }
   // test := IncomeData{}
   incomeData, err = validateValueByStuct(body)
+  if err != nil {
+    errors := err.(validator.ValidationErrors)
+    allErrors := "Error: "
+    for _, e := range errors {
+      allErrors += e.Field() + " "+ e.Tag()
+			return c.JSON(http.StatusBadRequest, allErrors)
+		}
+  }
   // fmt.Printf("test: %v\n",test)
   // fmt.Printf("incomeData: %v\n",incomeData)
   personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
