@@ -9,7 +9,7 @@ import (
   "io/ioutil"
 	// "strconv"
 	// "strings"
-  "encoding/json"
+  // "encoding/json"
 )
 type Handler struct {
 	store Storer
@@ -28,10 +28,12 @@ func New(db Storer) *Handler {
 type IncomeData struct {
   TotalIncome float64 `json:"totalIncome"`
   Wht        float64 `json:"wht"`
-  Allowances []struct {
-    AllowanceType string  `json:"allowanceType"`
-    Amount        float64 `json:"amount"`
-  } `json:"allowances"`
+  Allowances []Allowance `json:"allowances"`
+}
+
+type Allowance struct {
+  AllowanceType string `json:"allowanceType"`
+  Amount        float64 `json:"amount"`
 }
 
 type taxlevel struct {
@@ -60,9 +62,7 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
 			return err
   }
 	defer c.Request().Body.Close()
-  if err = json.Unmarshal(body, &incomeData); err != nil {
-    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
-	}
+
   err = validateKey(body)
   if err != nil {
     return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -71,6 +71,14 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   // if err != nil {
   //   return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
   // }
+  // fmt.Printf("body: %v\n",body)
+  // if err = json.Unmarshal(body, &incomeData); err != nil {
+  //   return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+	// }
+  // test := IncomeData{}
+  incomeData, err = validateValueByStuct(body)
+  // fmt.Printf("test: %v\n",test)
+  // fmt.Printf("incomeData: %v\n",incomeData)
   personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
   if(err != nil){
     return c.JSON(http.StatusBadRequest, "Not found")
