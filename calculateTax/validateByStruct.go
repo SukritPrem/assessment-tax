@@ -10,11 +10,11 @@ import (
 )
 
 type IncomeDataValidate struct {
-  TotalIncome *float64 `json:"totalIncome" validate:"required,maxfloat"`
-  Wht        *float64 `json:"wht" validate:"required,maxfloat"`
+  TotalIncome *float64 `json:"totalIncome" validate:"required,checkValuefloat"`
+  Wht        *float64 `json:"wht" validate:"required,checkValuefloat"`
   Allowances *[]struct {
     AllowanceType *string  `json:"allowanceType" validate:"required,checkType"`
-    Amount        *float64 `json:"amount" validate:"required,maxfloat"`
+    Amount        *float64 `json:"amount" validate:"required,checkValuefloat"`
   } `json:"allowances" validate:"required,dive,required"`
 }
 
@@ -26,7 +26,7 @@ func validateValueByStuct(jsonBytes []byte) (IncomeData, error) {
 	}
 	// Custom validation
 	validate := validator.New()
-	validate.RegisterValidation("maxfloat", validateFloatMax)
+	validate.RegisterValidation("checkValuefloat", validateValueFloat)
 	validate.RegisterValidation("checkType", validateAllowanceType)
 	if err := validate.Struct(incomeData); err != nil {
 		return d, err
@@ -51,7 +51,7 @@ func validateValueByStuct(jsonBytes []byte) (IncomeData, error) {
 	return d, nil
 }
 
-func validateFloatMax(fl validator.FieldLevel) bool {
+func validateValueFloat(fl validator.FieldLevel) bool {
 	data := fl.Field().Interface().(float64)
 	if data > float64(math.MaxFloat64) || data < 0	{
 		return false
