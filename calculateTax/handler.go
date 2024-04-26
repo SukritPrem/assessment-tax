@@ -63,23 +63,10 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
 			return err
   }
 	defer c.Request().Body.Close()
-  // if(len(body) == 0){
-  //   return c.JSON(http.StatusBadRequest, "Invalid JSON data")
-  // }
-  // fmt.Printf("body: %v\n",body)
   err = validateKey(body)
   if err != nil {
     return c.JSON(http.StatusBadRequest, err.Error())
   }
-  // err = c.Bind(&incomeData)
-  // if err != nil {
-  //   return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
-  // }
-  // fmt.Printf("body: %v\n",body)
-  // if err = json.Unmarshal(body, &incomeData); err != nil {
-  //   return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
-	// }
-  // test := IncomeData{}
   incomeData, err = validateValueByStuct(body)
   if err != nil {
     errors := err.(validator.ValidationErrors)
@@ -89,8 +76,6 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, allErrors)
 		}
   }
-  // fmt.Printf("test: %v\n",test)
-  // fmt.Printf("incomeData: %v\n",incomeData)
   personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
   if(err != nil){
     return c.JSON(http.StatusBadRequest, "Not found")
@@ -106,18 +91,12 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   }
 
   incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
-  // fmt.Println(incomeData.TotalIncome)
   err = IncomeDataDecrease(&incomeData,k_receipt)
   if(err != nil){
     return c.JSON(http.StatusBadRequest, err.Error())
   }
-  // fmt.Printf("k_receipt: %f\n",k_receipt)
-  // fmt.Printf("totalincome: %f",incomeData.TotalIncome)
-  // fmt.Println(incomeData.TotalIncome)
   taxlevels := CalculateTaxLevelWithNetIncomeData(&incomeData)
   sum_tax := sumAllTaxLevel(taxlevels)
-  // fmt.Println(sum_tax)
-
   sum_tax = sum_tax - incomeData.Wht
   taxRefund := 0.0
   if(sum_tax < 0){
@@ -150,7 +129,7 @@ func (h *Handler) HandleIncomeDataCSV(c echo.Context) error {
     return c.JSON(http.StatusBadRequest, "Error opening file")
   }
   defer src.Close()
-  // Read the file
+
   personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
   if(err != nil){
     return c.JSON(http.StatusBadRequest, "Not found")

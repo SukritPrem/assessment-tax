@@ -13,27 +13,22 @@ import (
 	// "io/ioutil"
 	// "strings"
 	"bytes"
-	"encoding/json"
 )
 
 func Test_WhtThenMax(t *testing.T) {
 	// Create a new Postgres instance
 	e := echo.New()
-	reqBody := IncomeData{
-		TotalIncome: 500000,
-		Wht: 25000.1,
-		Allowances: []struct {
-			AllowanceType string  `json:"allowanceType"`
-			Amount        float64 `json:"amount"`
-		}{
+	jsonBytes := []byte(`{
+		"totalIncome": 500000.0,
+		"wht": 25000.1,
+		"allowances": [
 			{
-				AllowanceType: "k-receipt",
-				Amount: 0,
-			},
-		},
-	}
-	reqJSON, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(reqJSON))
+			"allowanceType": "donation",
+			"amount": 0
+			}
+		]
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(jsonBytes))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -60,21 +55,17 @@ func Test_WhtThenMax(t *testing.T) {
 func Test_WhtIsNeg(t *testing.T) {
 	// Create a new Postgres instance
 	e := echo.New()
-	reqBody := IncomeData{
-		TotalIncome: 500000,
-		Wht: -1,
-		Allowances: []struct {
-			AllowanceType string  `json:"allowanceType"`
-			Amount        float64 `json:"amount"`
-		}{
+	jsonBytes := []byte(`{
+		"totalIncome": 500000.0,
+		"wht": -25000.1,
+		"allowances": [
 			{
-				AllowanceType: "k-receipt",
-				Amount: 0,
-			},
-		},
-	}
-	reqJSON, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(reqJSON))
+			"allowanceType": "donation",
+			"amount": 0
+			}
+		]
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(jsonBytes))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -84,7 +75,7 @@ func Test_WhtIsNeg(t *testing.T) {
 		panic(err)
 	}
 
-	expected := `"Wht Is Negative"`
+	expected := `"Error: Wht checkValuefloat"`
 
 	handler := calculateTax.New(p)
 	err = handler.HandleCalculateTaxData(c)
