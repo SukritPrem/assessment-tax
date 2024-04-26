@@ -12,28 +12,38 @@ import (
 	// "io/ioutil"
 	// // "strings"
 	"bytes"
-	"encoding/json"
+	// "encoding/json"
 	// "mime/multipart"
 )
 
 func TestCalculateExp01_TaxRefund(t *testing.T) {
 	// Create a new Postgres instance
 	e := echo.New()
-	reqBody := IncomeData{
-		TotalIncome: 220001,
-		Wht: 7500,
-		Allowances: []struct {
-			AllowanceType string  `json:"allowanceType"`
-			Amount        float64 `json:"amount"`
-		}{
+	// reqBody := IncomeData{
+	// 	TotalIncome: 220001,
+	// 	Wht: 7500,
+	// 	Allowances: []struct {
+	// 		AllowanceType string  `json:"allowanceType"`
+	// 		Amount        float64 `json:"amount"`
+	// 	}{
+	// 		{
+	// 			AllowanceType: "k-receipt",
+	// 			Amount: 0,
+	// 		},
+	// 	},
+	// }
+	// reqJSON, _ := json.Marshal(reqBody)
+	jsonBytes := []byte(`{
+		"totalIncome": 220001,
+		"wht": 7500,
+		"allowances": [
 			{
-				AllowanceType: "k-receipt",
-				Amount: 0,
-			},
-		},
-	}
-	reqJSON, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(reqJSON))
+			"allowanceType": "donation",
+			"amount": 0
+			}
+		]
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(jsonBytes))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -52,7 +62,7 @@ func TestCalculateExp01_TaxRefund(t *testing.T) {
 			},
 			{
 				"level": "150,001-500,000",
-				"tax": 0
+				"tax": 1000
 			},
 			{
 				"level": "500,001-1,000,000",

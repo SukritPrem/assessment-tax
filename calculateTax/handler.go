@@ -69,12 +69,14 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   }
   incomeData, err = validateValueByStuct(body)
   if err != nil {
-    errors := err.(validator.ValidationErrors)
-    allErrors := "Error: "
-    for _, e := range errors {
-      allErrors += e.Field() + " "+ e.Tag()
-			return c.JSON(http.StatusBadRequest, allErrors)
-		}
+    if errors, ok := err.(validator.ValidationErrors); ok {
+      allErrors := "Error: "
+      for _, e := range errors {
+        allErrors += e.Field() + " "+ e.Tag()
+        return c.JSON(http.StatusBadRequest, allErrors)
+      }
+    }
+    return c.JSON(http.StatusBadRequest, err.Error())
   }
   personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
   if(err != nil){
@@ -98,6 +100,7 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   taxlevels := CalculateTaxLevelWithNetIncomeData(&incomeData)
   sum_tax := sumAllTaxLevel(taxlevels)
   sum_tax = sum_tax - incomeData.Wht
+  // fmt.Printf("sum_tax: %v\n",sum_tax)
   taxRefund := 0.0
   if(sum_tax < 0){
     taxRefund = math.Abs(sum_tax)
