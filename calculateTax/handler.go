@@ -9,6 +9,7 @@ import (
   "io/ioutil"
 	// "strconv"
 	// "strings"
+  "encoding/json"
 )
 type Handler struct {
 	store Storer
@@ -25,7 +26,7 @@ func New(db Storer) *Handler {
 }
 
 type IncomeData struct {
-  TotalIncome float64 `json:"TotalIncome"`
+  TotalIncome float64 `json:"totalIncome"`
   Wht        float64 `json:"wht"`
   Allowances []struct {
     AllowanceType string  `json:"allowanceType"`
@@ -54,10 +55,22 @@ type LevelWithTax struct {
 
 func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
   var incomeData IncomeData
-  err := c.Bind(&incomeData)
-  if err != nil {
-    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+  body, err := ioutil.ReadAll(c.Request().Body)
+		if err != nil {
+			return err
   }
+	defer c.Request().Body.Close()
+  if err = json.Unmarshal(body, &incomeData); err != nil {
+    return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+	}
+  err = validateKey(body)
+  if err != nil {
+    return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+  }
+  // err = c.Bind(&incomeData)
+  // if err != nil {
+  //   return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON data")
+  // }
   personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
   if(err != nil){
     return c.JSON(http.StatusBadRequest, "Not found")

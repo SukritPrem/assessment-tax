@@ -18,25 +18,21 @@ import (
 func Test_DuplicateDonation(t *testing.T) {
 	// Create a new Postgres instance
 	e := echo.New()
-	reqBody := IncomeData{
-		TotalIncome: 3000000,
-		Wht: 0.0,
-		Allowances: []struct {
-			AllowanceType string  `json:"allowanceType"`
-			Amount        float64 `json:"amount"`
-		}{
+	jsonBytes := []byte(`{
+		"totalIncome": 10,
+		"wht": 0.0,
+		"allowances": [
 			{
-				AllowanceType: "k-receipt",
-				Amount: 0,
+			"allowanceType": "donation",
+			"amount": 0.0
 			},
 			{
-				AllowanceType: "k-receipt",
-				Amount: 0,
-			},
-		},
-	}
-	reqJSON, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(reqJSON))
+			"allowanceType": "donation",
+			"amount": 0.0
+			}
+		]
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(jsonBytes))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -63,21 +59,17 @@ func Test_DuplicateDonation(t *testing.T) {
 func Test_DonationRandomIncomeThenMax(t *testing.T) {
 	// Create a new Postgres instance
 	e := echo.New()
-	reqBody := IncomeData{
-		TotalIncome: 750000,
-		Wht: 0.0,
-		Allowances: []struct {
-			AllowanceType string  `json:"allowanceType"`
-			Amount        float64 `json:"amount"`
-		}{
+	jsonBytes := []byte(`{
+		"totalIncome": 750000,
+		"wht": 0.0,
+		"allowances": [
 			{
-				AllowanceType: "donation",
-				Amount: 500000,
-			},
-		},
-	}
-	reqJSON, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(reqJSON))
+			"allowanceType": "donation",
+			"amount": 500000
+			}
+		]
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(jsonBytes))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)

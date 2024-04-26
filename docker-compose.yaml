@@ -10,3 +10,12 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
+  # golang:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: golang
+  #   depends_on:
+  #     - postgres
+  #   ports:
+  #     - "${PORT}:${PORT}"
