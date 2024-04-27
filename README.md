@@ -13,6 +13,10 @@ make run
 when run test make sure value personalDeduction 60000 and k-receipt 50000
 after that use command -> docker compose up -> make test
 
+## Check branch
+
+use command -> git log --graph
+
 # K-Tax โปรแกรมคำนวนภาษี
 
 K-Tax เป็น Application คำนวนภาษี ที่ให้ผู้ใช้งานสามารถคำนวนภาษีบุคคลธรรมดา ตามขั้นบันใดภาษี พร้อมกับคำนวนค่าลดหย่อน และภาษีที่ต้องได้รับคืน
