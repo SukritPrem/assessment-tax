@@ -67,7 +67,7 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   }
   _, err = h.store.UpdateAmountByTaxType("k-receipt",*amount.Amount)
   if(err != nil){
-    return c.JSON(http.StatusBadRequest, "Not found")
+    return c.JSON(http.StatusInternalServerError, err.Error())
   }
   r := &Response_amount_kReceipt{
     Amount: *amount.Amount,

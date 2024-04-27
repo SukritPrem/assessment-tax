@@ -83,11 +83,15 @@ func checkErrorIncomeData(incomeData *IncomeData) error {
   if(incomeData.Wht < 0){
     return errors.New("Wht Is Negative")
   }
+  //for handle wht I think when client send wht amount
+  //is greater than half of totalIncome
+  //it's not possible.
   if(incomeData.Wht > incomeData.TotalIncome * 0.5){
     return errors.New("Wht is greater than TotalIncome * 0.5")
   }
   return nil
 }
+
 func ReponseSumTaxWithTaxLevel(taxlevels []taxlevel,sum_tax float64,taxRefund float64) Response_tax {
   r := &Response_tax{
     Tax_sum: sum_tax,

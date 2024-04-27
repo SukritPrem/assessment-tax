@@ -71,7 +71,7 @@ func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
 
   personalDeduction, k_receipt, err := GetValuepersonalAndKreceipt(h)
   if(err != nil){
-    return c.JSON(http.StatusBadRequest, err.Error())
+    return c.JSON(http.StatusInternalServerError, err.Error())
   }
 
 
