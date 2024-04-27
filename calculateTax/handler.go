@@ -141,6 +141,11 @@ func ValidateReqClientTax(body []byte) (IncomeData,error){
     return incomeData,err
   }
 
+  err = CheckDuplicateKey(body)
+  if err != nil {
+    return incomeData,err
+  }
+  
   incomeData, err = validateValueByStuct(body)
   if err != nil {
     if errors, ok := err.(validator.ValidationErrors); ok {
