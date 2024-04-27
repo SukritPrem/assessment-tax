@@ -437,3 +437,41 @@ func TestInvalidType_allowance(t *testing.T) {
 
 	require.JSONEq(t, expected, rec.Body.String())
 }
+
+func TestDuplicatKeyWhenClientRequest(t *testing.T) {
+	// Create a new Postgres instance
+	e := echo.New()
+	jsonBytes := []byte(`{
+	"totalIncome": 50000,
+	"wht": 100,
+	"allowances": [
+		{
+		"allowanceType": "donation",
+		"amount": 10,
+		"amount": 10
+		}
+	]
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/tax/calculation", bytes.NewReader(jsonBytes))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/tax/calculation")
+	p, err := postgres.New();
+	if err != nil {
+		panic(err)
+	}
+
+	expected := `"Duplicate key found"`
+
+	handler := calculateTax.New(p)
+	err = handler.HandleCalculateTaxData(c)
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %v", rec.Code)
+	}
+
+	require.JSONEq(t, expected, rec.Body.String())
+}
