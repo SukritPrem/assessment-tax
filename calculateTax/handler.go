@@ -3,7 +3,7 @@ package calculateTax
 
 import (
 	"github.com/labstack/echo/v4"
-	// "fmt"
+	"fmt"
   "math"
 	"net/http"
   "io/ioutil"
@@ -57,50 +57,29 @@ type LevelWithTax struct {
 }
 
 func (h *Handler) HandleCalculateTaxData(c echo.Context) error {
-  var incomeData IncomeData
+
   body, err := ioutil.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
   }
 	defer c.Request().Body.Close()
-  err = validateKey(body)
-  if err != nil {
-    return c.JSON(http.StatusBadRequest, err.Error())
-  }
-  incomeData, err = validateValueByStuct(body)
-  if err != nil {
-    if errors, ok := err.(validator.ValidationErrors); ok {
-      allErrors := "Error: "
-      for _, e := range errors {
-        allErrors += e.Field() + " "+ e.Tag()
-        return c.JSON(http.StatusBadRequest, allErrors)
-      }
-    }
-    return c.JSON(http.StatusBadRequest, err.Error())
-  }
-  personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
-  if(err != nil){
-    return c.JSON(http.StatusBadRequest, "Not found")
-  }
-  k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
-  if(err != nil){
-    return c.JSON(http.StatusBadRequest, "Not found")
-  }
 
-  err = checkErrorIncomeData(&incomeData)
+  incomeData, err := ValidateReqClientTax(body)
   if(err != nil){
     return c.JSON(http.StatusBadRequest, err.Error())
   }
 
-  incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
-  err = IncomeDataDecrease(&incomeData,k_receipt)
+  personalDeduction, k_receipt, err := GetValuepersonalAndKreceipt(h)
   if(err != nil){
     return c.JSON(http.StatusBadRequest, err.Error())
   }
-  taxlevels := CalculateTaxLevelWithNetIncomeData(&incomeData)
-  sum_tax := sumAllTaxLevel(taxlevels)
-  sum_tax = sum_tax - incomeData.Wht
-  // fmt.Printf("sum_tax: %v\n",sum_tax)
+
+
+  sum_tax,taxlevels,err := CalculateAndGetSumTax(&incomeData,personalDeduction,k_receipt)
+  if(err != nil){
+    return c.JSON(http.StatusBadRequest, err.Error())
+  }
+
   taxRefund := 0.0
   if(sum_tax < 0){
     taxRefund = math.Abs(sum_tax)
@@ -122,7 +101,7 @@ type TotalIncomeAndTax struct {
 
 func (h *Handler) HandleIncomeDataCSV(c echo.Context) error {
   file, err := c.FormFile("file")
-  // r := &Reponse_csv{}
+  
   req := []IncomeData{}
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Error opening file")
@@ -133,14 +112,11 @@ func (h *Handler) HandleIncomeDataCSV(c echo.Context) error {
   }
   defer src.Close()
 
-  personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
+  personalDeduction, k_receipt, err := GetValuepersonalAndKreceipt(h)
   if(err != nil){
-    return c.JSON(http.StatusBadRequest, "Not found")
+    return c.JSON(http.StatusBadRequest, err.Error())
   }
-  k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
-  if(err != nil){
-    return c.JSON(http.StatusBadRequest, "Not found")
-  }
+
   data, err := ioutil.ReadAll(src)
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Error opening file")
@@ -151,4 +127,58 @@ func (h *Handler) HandleIncomeDataCSV(c echo.Context) error {
     return c.JSON(http.StatusBadRequest, err.Error()) 
   }
   return c.JSON(http.StatusOK, r)
+}
+
+func GetValuepersonalAndKreceipt(h *Handler) (float64,float64,error){
+  personalDeduction, err := h.store.GetAmountByTaxType("personalDeduction")
+  if(err != nil){
+    return 0,0,err
+  }
+  k_receipt, err := h.store.GetAmountByTaxType("k-receipt")
+  if(err != nil){
+    return 0,0,err
+  }
+  return personalDeduction,k_receipt,nil
+}
+
+
+func ValidateReqClientTax(body []byte) (IncomeData,error){
+  var incomeData IncomeData
+
+  err := validateKey(body)
+  if err != nil {
+    return incomeData,err
+  }
+
+  incomeData, err = validateValueByStuct(body)
+  if err != nil {
+    if errors, ok := err.(validator.ValidationErrors); ok {
+      allErrors := "Error: "
+      for _, e := range errors {
+        allErrors += e.Field() + " "+ e.Tag()
+        return incomeData,fmt.Errorf(allErrors)
+      }
+    }
+    return incomeData,err
+  }
+
+  err = checkErrorIncomeData(&incomeData)
+  if(err != nil){
+    return incomeData,err
+  }
+
+  return incomeData,nil
+}
+
+func CalculateAndGetSumTax(incomeData *IncomeData, personalDeduction float64, k_receipt float64) (float64,[]taxlevel,error){
+  incomeData.TotalIncome = incomeData.TotalIncome - personalDeduction
+  err := IncomeDataDecrease(incomeData,k_receipt)
+  if(err != nil){
+    return 0,nil,err
+  }
+
+  taxlevels := CalculateTaxLevelWithNetIncomeData(incomeData)
+  sum_tax := sumAllTaxLevel(taxlevels)
+  sum_tax = sum_tax - incomeData.Wht
+  return sum_tax,taxlevels,nil
 }
