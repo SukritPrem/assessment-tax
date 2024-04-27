@@ -22,7 +22,6 @@ func AuthMiddleware(username, password string, c echo.Context) (bool, error) {
 
 func main() {
 
-	// Create a new Postgres instance
 	p, err := postgres.New();
 	if err != nil {
 		panic(err)
