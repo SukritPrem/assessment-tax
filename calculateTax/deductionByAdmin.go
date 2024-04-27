@@ -3,11 +3,12 @@ package calculateTax
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
-	// "fmt"
+	"fmt"
   "io/ioutil"
   "strings"
   "encoding/json"
   "github.com/go-playground/validator/v10"
+  // "errors"
 )
 
 type Request_amount struct {
@@ -69,6 +70,7 @@ func (h *Handler) DeductionsPersonal(c echo.Context) error {
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Invalid JSON data")
   }
+
   validate := validator.New()
   validate.RegisterValidation("validateValueFloat", validateValueFloat)
   err = validate.Struct(amount)
@@ -80,6 +82,7 @@ func (h *Handler) DeductionsPersonal(c echo.Context) error {
       return c.JSON(http.StatusBadRequest, allErrors)
     }
   }
+
   if (*amount.Amount <= 10000 || *amount.Amount > 100000){
     return c.JSON(http.StatusBadRequest, "Amount is not in range")
   }
@@ -99,32 +102,25 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
       return err
   }
   defer c.Request().Body.Close()
+
   var jsonBytes []byte
   jsonBytes = body
   err = check(json.NewDecoder(strings.NewReader(string(jsonBytes))), nil, dupErr)
   if err != nil {
     return c.JSON(http.StatusBadRequest, "Duplicate key found")
   }
+
   err = validateKeyReqAdmin(body)
   if err != nil {
     return c.JSON(http.StatusBadRequest, err.Error())
   }
+
   amount := new(Request_amount_new)
-  err = json.Unmarshal(jsonBytes, &amount)
+  amount, err = UnmarshalAndValidate(jsonBytes)
   if err != nil {
-    return c.JSON(http.StatusBadRequest, "Invalid JSON data")
+    return c.JSON(http.StatusBadRequest, err.Error())
   }
-  validate := validator.New()
-  validate.RegisterValidation("validateValueFloat", validateValueFloat)
-  err = validate.Struct(amount)
-  if err != nil {
-    errors := err.(validator.ValidationErrors)
-    allErrors  := "Error:"
-    for _, e := range errors {
-      allErrors = allErrors + e.Field() + " " + e.Tag()
-      return c.JSON(http.StatusBadRequest, allErrors)
-    }
-  }
+
   if (*amount.Amount <= 0 || *amount.Amount > 100000){
     return c.JSON(http.StatusBadRequest, "Amount is not in range")
   }
@@ -138,6 +134,26 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   return c.JSON(http.StatusOK, r)
 }
 
+func UnmarshalAndValidate(jsonBytes []byte) (*Request_amount_new, error) {
+  amount := Request_amount_new{}
+  err := json.Unmarshal(jsonBytes, &amount)
+  if err != nil {
+    return &amount, err
+  } 
+
+  validate := validator.New()
+  validate.RegisterValidation("validateValueFloat", validateValueFloat)
+  err = validate.Struct(amount)
+  if err != nil {
+    errors := err.(validator.ValidationErrors)
+    allErrors  := "Error:"
+    for _, e := range errors {
+      allErrors = allErrors + e.Field() + " " + e.Tag()
+      return &amount, fmt.Errorf(allErrors)
+    }
+  }
+  return &amount, err
+}
 // First Solution I think can use param to check taxType but
 // when I read a subject again I think it's not work because
 // In subject want /admin/deductions/personal and /admin/deductions/k-receipt
