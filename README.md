@@ -1,3 +1,18 @@
+## HOW RUN MY Program
+
+## Step 1
+
+source export.sh
+
+## step 2
+
+make run
+
+## HOW RUN TEST CASE
+
+when run test make sure value personalDeduction 60000 and k-receipt 50000
+after that use command -> docker compose up -> make test
+
 # K-Tax โปรแกรมคำนวนภาษี
 
 K-Tax เป็น Application คำนวนภาษี ที่ให้ผู้ใช้งานสามารถคำนวนภาษีบุคคลธรรมดา ตามขั้นบันใดภาษี พร้อมกับคำนวนค่าลดหย่อน และภาษีที่ต้องได้รับคืน
@@ -31,6 +46,7 @@ K-Tax เป็น Application คำนวนภาษี ที่ให้ผ
 - ในกรณีที่รายรับ รวมหักค่าลดหย่อน พร้อมทั้ง wht พบว่าต้องได้เงินคืน จะต้องคำนวนเงินที่ต้องได้รับคืนใน field ใหม่ ที่ชื่อว่า taxRefund
 
 ## Non-Functional Requirement
+
 - มี `Unit Test` ครอบคลุม
 - ใช้ `go module`
 - ใช้ go module `go mod init github.com/<your github name>/assessment-tax`
@@ -53,10 +69,10 @@ K-Tax เป็น Application คำนวนภาษี ที่ให้ผ
 - **การ run program จะใช้คำสั่ง docker compose up เพื่อเตรียม environment และ go run main.go เพื่อ start api**
   - **หากต้องมีการใช้คำสั่งอื่น ๆ เพื่อทำให้โปรแกรมทำงานได้ จะไม่นับคะแนนหรือถูกหักคะแนน**
   - การตรวจจะทำการ export `env` ไว้ล่วงหน้าก่อนรัน ดังนี้
-	- `export PORT=8080`
-	- `export DATABASE_URL={REPLACE_ME}`
-	- `export ADMIN_USERNAME=adminTax`
-	- `export ADMIN_PASSWORD=admin!`
+  - `export PORT=8080`
+  - `export DATABASE_URL={REPLACE_ME}`
+  - `export ADMIN_USERNAME=adminTax`
+  - `export ADMIN_PASSWORD=admin!`
 - port ของ api จะต้องเป็น 8080
 
 ## Assumption
@@ -111,21 +127,24 @@ Response body
   "tax": 29000.0
 }
 ```
+
 <details>
 <summary>Calculation guide</summary>
 
 500,000 (รายรับ) - 60,0000 (ค่าลดหย่อนส่วนตัว) = 440,000
 
-| Tax Level | Tax |
-|-|-|
-|0-150,000|0|
-|150,001-500,000|29,000|
-|500,001-1,000,000|0|
-|1,000,001-2,000,000|0|
-|2,000,001 ขึ้นไป|0|
+| Tax Level           | Tax    |
+| ------------------- | ------ |
+| 0-150,000           | 0      |
+| 150,001-500,000     | 29,000 |
+| 500,001-1,000,000   | 0      |
+| 1,000,001-2,000,000 | 0      |
+| 2,000,001 ขึ้นไป    | 0      |
+
 </details>
 
--------
+---
+
 ### Story: EXP02
 
 ```
@@ -155,6 +174,7 @@ Response body
   "tax": 4000.0
 }
 ```
+
 <details>
 <summary>Calculation guide</summary>
 
@@ -164,7 +184,8 @@ Response body
 
 </details>
 
--------
+---
+
 ### Story: EXP03
 
 ```
@@ -200,18 +221,20 @@ Response body
 
 500,000 (รายรับ) - 60,0000 (ค่าลดหย่อนส่วนตัว) - 100,000 (เงินบริจาค) = 340,000
 
-| Tax Level | Tax |
-|-|-|
-|0-150,000|0|
-|150,001-500,000|19,000|
-|500,001-1,000,000|0|
-|1,000,001-2,000,000|0|
-|2,000,001 ขึ้นไป|0|
-----
+| Tax Level           | Tax    |
+| ------------------- | ------ |
+| 0-150,000           | 0      |
+| 150,001-500,000     | 19,000 |
+| 500,001-1,000,000   | 0      |
+| 1,000,001-2,000,000 | 0      |
+| 2,000,001 ขึ้นไป    | 0      |
+
+---
+
 </details>
 
+---
 
--------
 ### Story: EXP04
 
 ```
@@ -263,7 +286,8 @@ Response body
   ]
 }
 ```
-----
+
+---
 
 ### Story: EXP05
 
@@ -287,8 +311,8 @@ Response body
   "personalDeduction": 70000.0
 }
 ```
-----
 
+---
 
 ### Story: EXP06
 
@@ -300,7 +324,8 @@ Response body
 `POST:` tax/calculations/upload-csv
 
 form-data:
-  - taxFile: taxes.csv
+
+- taxFile: taxes.csv
 
 ```
 totalIncome,wht,donation
@@ -323,7 +348,8 @@ Response body
 }
 ```
 
--------
+---
+
 ### Story: EXP07
 
 ```
@@ -379,22 +405,25 @@ Response body
   ]
 }
 ```
+
 <details>
 <summary>Calculation guide</summary>
 
 500,000 (รายรับ) - 60,0000 (ค่าลดหย่อนส่วนตัว) - 100,000 (เงินบริจาค) - 50,000 (k-receipt) = 290,000
 
-| Tax Level | Tax    |
-|-|--------|
-|0-150,000| 0      |
-|150,001-500,000| 14,000 |
-|500,001-1,000,000| 0      |
-|1,000,001-2,000,000| 0      |
-|2,000,001 ขึ้นไป| 0      |
-----
+| Tax Level           | Tax    |
+| ------------------- | ------ |
+| 0-150,000           | 0      |
+| 150,001-500,000     | 14,000 |
+| 500,001-1,000,000   | 0      |
+| 1,000,001-2,000,000 | 0      |
+| 2,000,001 ขึ้นไป    | 0      |
+
+---
+
 </details>
 
-----
+---
 
 ### Story: EXP08
 
@@ -418,4 +447,5 @@ Response body
   "kReceipt": 70000.0
 }
 ```
-----
+
+---
