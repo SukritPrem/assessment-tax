@@ -20,7 +20,7 @@ type Response_amount_personalDeduction struct {
 }
 
 type Response_amount_kReceipt struct {
-  Amount float64 `json:"k-receipt"`
+  Amount float64 `json:"kReceipt"`
 }
 
 func (h *Handler) DeductionsPersonal(c echo.Context) error {
