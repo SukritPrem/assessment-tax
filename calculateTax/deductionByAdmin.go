@@ -12,10 +12,6 @@ import (
 )
 
 type Request_amount struct {
-  Amount float64 `json:"amount" `
-}
-
-type Request_amount_new struct {
   Amount *float64 `json:"amount" validate:"required,validateValueFloat"`
 }
 
@@ -27,60 +23,17 @@ type Response_amount_kReceipt struct {
   Amount float64 `json:"k-receipt"`
 }
 
-// func (h *Handler) DeductionsKReceipt(c echo.Context) error {
-//   a := new(Request_amount)
-//   err := c.Bind(&a)
-//   if err != nil {
-//     return c.JSON(http.StatusBadRequest, "Invalid JSON data")
-//   }
-//   if (a.Amount <= 0 || a.Amount > 100000){
-//     return c.JSON(http.StatusBadRequest, "Amount is not in range")
-//   }
-//   _, err = h.store.UpdateAmountByTaxType("k-receipt",a.Amount)
-//   if(err != nil){
-//     return c.JSON(http.StatusBadRequest, "Not found")
-//   }
-
-//   r := &Response_amount_kReceipt{
-//     Amount: a.Amount,
-//   }
-//   return c.JSON(http.StatusOK, r)
-// }
-
 func (h *Handler) DeductionsPersonal(c echo.Context) error {
   body, err := ioutil.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
   }
 	defer c.Request().Body.Close()
-  var jsonBytes []byte
-  jsonBytes = body
-  err = check(json.NewDecoder(strings.NewReader(string(jsonBytes))), nil, dupErr)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "Duplicate key found")
-	}
 
-  err = validateKeyReqAdmin(body)
+  amount := new(Request_amount)
+  amount, err = validateReqAdmin(body)
   if err != nil {
     return c.JSON(http.StatusBadRequest, err.Error())
-  }
-
-  amount := new(Request_amount_new)
-  err = json.Unmarshal(jsonBytes, &amount)
-  if err != nil {
-    return c.JSON(http.StatusBadRequest, "Invalid JSON data")
-  }
-
-  validate := validator.New()
-  validate.RegisterValidation("validateValueFloat", validateValueFloat)
-  err = validate.Struct(amount)
-  if err != nil {
-    errors := err.(validator.ValidationErrors)
-    allErrors := "Error:"
-    for _, e := range errors {
-      allErrors = allErrors + e.Field() + " " + e.Tag()
-      return c.JSON(http.StatusBadRequest, allErrors)
-    }
   }
 
   if (*amount.Amount <= 10000 || *amount.Amount > 100000){
@@ -103,20 +56,8 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   }
   defer c.Request().Body.Close()
 
-  var jsonBytes []byte
-  jsonBytes = body
-  err = check(json.NewDecoder(strings.NewReader(string(jsonBytes))), nil, dupErr)
-  if err != nil {
-    return c.JSON(http.StatusBadRequest, "Duplicate key found")
-  }
-
-  err = validateKeyReqAdmin(body)
-  if err != nil {
-    return c.JSON(http.StatusBadRequest, err.Error())
-  }
-
-  amount := new(Request_amount_new)
-  amount, err = UnmarshalAndValidate(jsonBytes)
+  amount := new(Request_amount)
+  amount, err = validateReqAdmin(body)
   if err != nil {
     return c.JSON(http.StatusBadRequest, err.Error())
   }
@@ -134,9 +75,28 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   return c.JSON(http.StatusOK, r)
 }
 
-func UnmarshalAndValidate(jsonBytes []byte) (*Request_amount_new, error) {
-  amount := Request_amount_new{}
-  err := json.Unmarshal(jsonBytes, &amount)
+
+
+func validateReqAdmin(jsonBytes []byte) (*Request_amount, error){
+  amount := new(Request_amount)
+  err := CheckDuplicateKey(jsonBytes)
+  if err != nil {
+    return amount, err
+  }
+  amount, err = UnmarshalAndValidateReqAdmin(jsonBytes)
+  if err != nil {
+    return amount, err
+  }
+  return amount, nil
+}
+
+func UnmarshalAndValidateReqAdmin(jsonBytes []byte) (*Request_amount, error) {
+  amount := Request_amount{}
+  err := validateKeyReqAdmin(jsonBytes)
+  if err != nil {
+    return &amount, err
+  }
+  err = json.Unmarshal(jsonBytes, &amount)
   if err != nil {
     return &amount, err
   } 
@@ -154,6 +114,26 @@ func UnmarshalAndValidate(jsonBytes []byte) (*Request_amount_new, error) {
   }
   return &amount, err
 }
+
+func CheckDuplicateKey(jsonBytes []byte) error {
+  err := check(json.NewDecoder(strings.NewReader(string(jsonBytes))), nil, dupErr)
+  if err != nil {
+    return fmt.Errorf("Duplicate key found")
+  }
+  return nil
+}
+
+
+
+
+
+
+
+
+
+
+
+
 // First Solution I think can use param to check taxType but
 // when I read a subject again I think it's not work because
 // In subject want /admin/deductions/personal and /admin/deductions/k-receipt
@@ -176,7 +156,7 @@ func UnmarshalAndValidate(jsonBytes []byte) (*Request_amount_new, error) {
 //   if err != nil {
 //     return c.JSON(http.StatusBadRequest, err.Error())
 //   }
-//   amount := new(Request_amount_new)
+//   amount := new(Request_amount)
 //   validate := validator.New()
 //   validate.RegisterValidation("maxfloat", validateValueFloat)
 // 	err = validate.Struct(amount)

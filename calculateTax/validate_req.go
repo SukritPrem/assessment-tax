@@ -67,7 +67,7 @@ func validateMapReqAdmin(data map[string]interface{}) error {
 	
 
 	// Convert the map to a struct
-	var incomeData Request_amount_new 
+	var incomeData Request_amount
 	for key, _:= range data {
 		if !hasField(&incomeData, key) {
 			return errors.New("Invalid JSON data " + key)
