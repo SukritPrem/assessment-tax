@@ -83,8 +83,8 @@ func checkErrorIncomeData(incomeData *IncomeData) error {
   if(incomeData.Wht < 0){
     return errors.New("Wht Is Negative")
   }
-  if(incomeData.Wht > incomeData.TotalIncome * 0.05){
-    return errors.New("Wht is greater than TotalIncome * 0.05")
+  if(incomeData.Wht > incomeData.TotalIncome * 0.5){
+    return errors.New("Wht is greater than TotalIncome * 0.5")
   }
   return nil
 }

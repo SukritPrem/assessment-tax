@@ -31,14 +31,13 @@ func main() {
 	e := echo.New()
 	e.POST("/tax/calculation", handler.HandleCalculateTaxData)
 	e.POST("/tax/calculations/upload-csv", handler.HandleIncomeDataCSV)
-	e.POST("/test/deductions/personal", handler.DeductionsPersonal)
 	g := e.Group("/admin")
 	g.Use(middleware.BasicAuth(AuthMiddleware))
 	g.POST("/deductions/personal", handler.DeductionsPersonal)
 	g.POST("/deductions/k-receipt", handler.DeductionsKReceipt)
 
 	go func() {
-		if err := e.Start(":8080"); err != nil && err != http.ErrServerClosed { // Start server
+		if err := e.Start(":" + os.Getenv("PORT")); err != nil && err != http.ErrServerClosed { // Start server
 			e.Logger.Fatal("shutting down the server")
 		}
 	}()

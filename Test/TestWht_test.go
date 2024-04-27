@@ -20,7 +20,7 @@ func Test_WhtThenMax(t *testing.T) {
 	e := echo.New()
 	jsonBytes := []byte(`{
 		"totalIncome": 500000.0,
-		"wht": 25000.1,
+		"wht": 250000.1,
 		"allowances": [
 			{
 			"allowanceType": "donation",
@@ -38,7 +38,7 @@ func Test_WhtThenMax(t *testing.T) {
 		panic(err)
 	}
 
-	expected := `"Wht is greater than TotalIncome * 0.05"`
+	expected := `"Wht is greater than TotalIncome * 0.5"`
 
 	handler := calculateTax.New(p)
 	err = handler.HandleCalculateTaxData(c)

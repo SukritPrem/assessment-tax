@@ -14,4 +14,5 @@ exportEnv:
 
 run:
 	make exportEnv
-	docker compose up --build
+	docker compose up -docker
+	make gobuild
