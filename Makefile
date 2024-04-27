@@ -9,10 +9,10 @@ refreshbranch:
 	git fetch origin           # update all tracking branches, including Branch1
 	git rebase origin/main  # rebase on latest main
 
-exportEnv:
-	source export.sh
+#Step 1 run command source export.sh
+#Step 2 run command make run
+# 	source export.sh
 
 run:
-	make exportEnv
-	docker compose up -docker
+	docker compose up -d
 	make gobuild
