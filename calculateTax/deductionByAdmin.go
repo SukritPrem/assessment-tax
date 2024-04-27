@@ -15,7 +15,7 @@ type Request_amount struct {
 }
 
 type Request_amount_new struct {
-  Amount *float64 `json:"amount" validate:"required,maxfloat"`
+  Amount *float64 `json:"amount" validate:"required,validateValueFloat"`
 }
 
 type Response_amount_personalDeduction struct {
@@ -70,14 +70,14 @@ func (h *Handler) DeductionsPersonal(c echo.Context) error {
     return c.JSON(http.StatusBadRequest, "Invalid JSON data")
   }
   validate := validator.New()
-  validate.RegisterValidation("maxfloat", validateValueFloat)
+  validate.RegisterValidation("validateValueFloat", validateValueFloat)
   err = validate.Struct(amount)
   if err != nil {
     errors := err.(validator.ValidationErrors)
-    allErrors := errors.Error()
+    allErrors := "Error:"
     for _, e := range errors {
-      allErrors = allErrors + e.Field() + " " + e.Tag() + "\n"
-      c.JSON(http.StatusBadRequest, allErrors)
+      allErrors = allErrors + e.Field() + " " + e.Tag()
+      return c.JSON(http.StatusBadRequest, allErrors)
     }
   }
   if (*amount.Amount <= 10000 || *amount.Amount > 100000){
@@ -115,14 +115,14 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
     return c.JSON(http.StatusBadRequest, "Invalid JSON data")
   }
   validate := validator.New()
-  validate.RegisterValidation("maxfloat", validateValueFloat)
+  validate.RegisterValidation("validateValueFloat", validateValueFloat)
   err = validate.Struct(amount)
   if err != nil {
     errors := err.(validator.ValidationErrors)
-    allErrors := errors.Error()
+    allErrors  := "Error:"
     for _, e := range errors {
-      allErrors = allErrors + e.Field() + " " + e.Tag() + "\n"
-      c.JSON(http.StatusBadRequest, allErrors)
+      allErrors = allErrors + e.Field() + " " + e.Tag()
+      return c.JSON(http.StatusBadRequest, allErrors)
     }
   }
   if (*amount.Amount <= 0 || *amount.Amount > 100000){
@@ -137,6 +137,7 @@ func (h *Handler) DeductionsKReceipt(c echo.Context) error {
   }
   return c.JSON(http.StatusOK, r)
 }
+
 // First Solution I think can use param to check taxType but
 // when I read a subject again I think it's not work because
 // In subject want /admin/deductions/personal and /admin/deductions/k-receipt
