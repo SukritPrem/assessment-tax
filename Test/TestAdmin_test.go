@@ -139,3 +139,34 @@ func TestCalculateExp08_adminUpdateValueThenMaxValueDeductions_personal(t *testi
 
 	require.JSONEq(t, expected, rec.Body.String())
 }
+
+func TestCalculateExp08_adminUpdateDuplicateKeyAmount(t *testing.T) {
+	// Create a new Postgres instance
+	e := echo.New()
+	jsonBytes := []byte(`{
+			"amount": 60000.0,
+			"amount": 60000.0
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/admin/deductions/k-receipt", bytes.NewReader(jsonBytes))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/admin/deductions/k-receipt")
+	p, err := postgres.New();
+	if err != nil {
+		panic(err)
+	}
+	expected := `
+				"Duplicate key found"
+				`
+	handler := calculateTax.New(p)
+	err = handler.DeductionsKReceipt(c)
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %v", rec.Code)
+	}
+
+	require.JSONEq(t, expected, rec.Body.String())
+}

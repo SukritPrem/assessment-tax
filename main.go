@@ -31,10 +31,10 @@ func main() {
 	e := echo.New()
 	e.POST("/tax/calculation", handler.HandleCalculateTaxData)
 	e.POST("/tax/calculations/upload-csv", handler.HandleIncomeDataCSV)
-	e.POST("/test/deductions/personal", handler.DeductionsPersonalNew)
+	e.POST("/test/deductions/personal", handler.DeductionsPersonal)
 	g := e.Group("/admin")
 	g.Use(middleware.BasicAuth(AuthMiddleware))
-	g.POST("/deductions/personal", handler.DeductionsPersonalNew)
+	g.POST("/deductions/personal", handler.DeductionsPersonal)
 	g.POST("/deductions/k-receipt", handler.DeductionsKReceipt)
 
 	go func() {
