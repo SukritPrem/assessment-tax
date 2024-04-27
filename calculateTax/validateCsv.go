@@ -33,7 +33,7 @@ func pasreCommaToIncomeData(values []string) (IncomeData, error){
 	return dataOneLine, nil
 }
 
-func validateCSV(data []byte, req *[]IncomeData, personalDeduction float64, k_receipt float64) (error, Reponse_csv) {
+func validateCSV(data []byte, personalDeduction float64, k_receipt float64) (error, Reponse_csv) {
     r := Reponse_csv{}
     result := TotalIncomeAndTax{}
     data = []byte(strings.Replace(string(data), "\r", "", -1))
