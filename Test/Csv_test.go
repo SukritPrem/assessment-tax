@@ -46,7 +46,7 @@ func TestHandleIncomeDataCSV_errorWhtThenMax(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	expected := `"Wht is greater than TotalIncome * 0.5"`
+	expected := `"Wht is greater than TotalIncome"`
 	handler := calculateTax.New(p)
 	err = handler.HandleIncomeDataCSV(c)
 	if err != nil {

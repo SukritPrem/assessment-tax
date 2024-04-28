@@ -83,11 +83,8 @@ func checkErrorIncomeData(incomeData *IncomeData) error {
   if(incomeData.Wht < 0){
     return errors.New("Wht Is Negative")
   }
-  //for handle wht I think when client send wht amount
-  //is greater than half of totalIncome
-  //it's not possible.
-  if(incomeData.Wht > incomeData.TotalIncome * 0.5){
-    return errors.New("Wht is greater than TotalIncome * 0.5")
+  if(incomeData.Wht > incomeData.TotalIncome){
+    return errors.New("Wht is greater than TotalIncome")
   }
   return nil
 }
