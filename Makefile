@@ -15,4 +15,5 @@ refreshbranch:
 
 run:
 	docker compose up -d
+	sleep 2 #wait for the container to start
 	make gobuild
