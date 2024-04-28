@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 )
 type Reponse_csv struct {
-  Taxs []TotalIncomeAndTax `json:"taxs"`
+  Taxs []TotalIncomeAndTax `json:"taxes"`
 }
 
 type TotalIncomeAndTax struct {

@@ -91,7 +91,7 @@ func TestHandleIncomeDataCSV_TrueFileCsv(t *testing.T) {
 		panic(err)
 	}
 	expected := `{
-		"taxs": [
+		"taxes": [
 			{
 				"totalIncome": 500000,
 				"tax": 29000
